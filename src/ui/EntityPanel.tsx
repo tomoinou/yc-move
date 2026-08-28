@@ -81,7 +81,7 @@ export function EntityPanel({
                 border: 'none',
                 borderRadius: '4px 0 0 4px',
                 color: 'white',
-                padding: '4px 13px',
+                padding: '4px 14px',
                 cursor: 'pointer',
                 fontSize: 13,
               }}

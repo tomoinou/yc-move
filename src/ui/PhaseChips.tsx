@@ -58,7 +58,7 @@ export function PhaseChips({
                   color: 'white',
                   border: 'none',
                   borderRadius: (i === 0 || !isActive) ? 4 : '4px 0 0 4px',
-                  padding: isActive ? '4px 13px' : '4px 10px',
+                  padding: isActive ? '4px 14px' : '4px 10px',
                   fontSize: 13,
                   cursor: 'pointer',
                 }}

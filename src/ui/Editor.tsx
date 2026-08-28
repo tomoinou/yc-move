@@ -135,8 +135,11 @@ export function Editor() {
       if (!drag) { setDragOverride(null); return; }
 
       if (drag.moved) {
-        const canonical = pointerToCanonical(e.clientX, e.clientY);
-        if (canonical) {
+        const rawPos = pointerToCanonical(e.clientX, e.clientY);
+        if (rawPos) {
+          const rect = svgRef.current?.getBoundingClientRect();
+          const offsetM = rect ? 36 * VH / rect.height : 2;
+          const canonical = clampCanonical({ x: rawPos.x, y: rawPos.y + offsetM });
           const { currentPhaseIdx: idx, play: currentPlay } = latestRef.current;
           const t = [0, ...currentPlay.markers][idx] ?? 0;
           commit(draft => {

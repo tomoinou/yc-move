@@ -379,10 +379,14 @@ export function Editor() {
 
   const handleShare = useCallback(() => {
     if (!shareUrl) return;
-    // クリック時に非同期処理を挟まず writeText を呼ぶ → ユーザーアクティベーションが有効なまま
-    navigator.clipboard.writeText(shareUrl)
-      .then(() => window.alert('共有URLをコピーしました'))
-      .catch(() => window.prompt('以下のURLをコピーしてください', shareUrl));
+    const fallback = () => window.prompt('以下のURLをコピーしてください', shareUrl);
+    try {
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => window.alert('共有URLをコピーしました'))
+        .catch(fallback);
+    } catch {
+      fallback();
+    }
   }, [shareUrl]);
 
   return (

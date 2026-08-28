@@ -7,9 +7,9 @@ const BK_STEP_X  = 5;   // BK 間の x 間隔
 const HW = FIELD.halfM; // ハーフウェイライン y=30
 const Y_SHIFT    = 5;   // 全体を y 方向 +5m
 
-// A ライン角度: 水平線から 60°
-// x 方向 5m ごとに y が 5*tan(60°) = 5√3 ≈ 8.66m 下がる
-const A_STEP_Y = BK_STEP_X * Math.tan(Math.PI / 3);
+// A ライン角度: 水平線から 45°
+// x 方向 5m ごとに y が 5*tan(45°) = 5m 下がる
+const A_STEP_Y = BK_STEP_X * Math.tan(Math.PI / 4);
 
 const A1_Y = HW - 2 + Y_SHIFT;                   // 33
 const aY   = (n: number) => A1_Y - A_STEP_Y * n; // A1 起点から n 人分右下

@@ -1,6 +1,7 @@
 import { FIELD } from './field.ts';
 import type { Vec2 } from './types.ts';
 
+export const SVG_WIDTH_M = FIELD.widthM + 2 * FIELD.marginM;
 export const VIEW_HEIGHT_M = FIELD.halfM + 2 * FIELD.marginM;
 
 // Canonical (y-up, m) → SVG viewBox units (y-down, m).

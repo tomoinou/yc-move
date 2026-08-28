@@ -4,6 +4,8 @@ import { entityPositionAt } from './interpolate.ts';
 export type BallState = {
   pos: Vec2;
   holderId: string | null;
+  holderSide: 'attack' | 'defence' | null;
+  flightInfo: { fromSide: 'attack' | 'defence'; toSide: 'attack' | 'defence'; fraction: number } | null;
   isForward: boolean;
 };
 
@@ -27,7 +29,7 @@ function getEntity(play: Play, id: string) {
 export function ballStateAt(play: Play, t: number): BallState {
   const { holders } = play.ball;
   if (holders.length === 0) {
-    return { pos: { x: 20, y: 30 }, holderId: null, isForward: false };
+    return { pos: { x: 20, y: 30 }, holderId: null, holderSide: null, flightInfo: null, isForward: false };
   }
 
   let curIdx = 0;
@@ -50,6 +52,8 @@ export function ballStateAt(play: Play, t: number): BallState {
       return {
         pos: lerp2(releasePos, receivePos, fraction),
         holderId: null,
+        holderSide: null,
+        flightInfo: { fromSide: from.side, toSide: to.side, fraction },
         isForward: receivePos.y > releasePos.y,
       };
     } catch {
@@ -59,9 +63,9 @@ export function ballStateAt(play: Play, t: number): BallState {
 
   try {
     const holder = getEntity(play, cur.holderId);
-    return { pos: entityPositionAt(holder, t), holderId: cur.holderId, isForward: false };
+    return { pos: entityPositionAt(holder, t), holderId: cur.holderId, holderSide: holder.side, flightInfo: null, isForward: false };
   } catch {
-    return { pos: { x: 20, y: 30 }, holderId: null, isForward: false };
+    return { pos: { x: 20, y: 30 }, holderId: null, holderSide: null, flightInfo: null, isForward: false };
   }
 }
 

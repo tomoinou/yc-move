@@ -3,49 +3,49 @@ import { FIELD } from './field.ts';
 import { VIEW_HEIGHT_M, toScreen, fromScreen } from './camera.ts';
 import type { Vec2 } from './types.ts';
 
-const VH = VIEW_HEIGHT_M;
+const VH = VIEW_HEIGHT_M; // 30 + 2*1 = 32
 
 describe('VIEW_HEIGHT_M', () => {
   it('equals halfM + 2 * marginM', () => {
     expect(VH).toBe(FIELD.halfM + 2 * FIELD.marginM);
-    expect(VH).toBe(34);
+    expect(VH).toBe(32);
   });
 });
 
 describe('toScreen', () => {
   it('canonical origin maps to SVG bottom-left of field area', () => {
     const r = toScreen({ x: 0, y: 0 }, 0, VH);
-    expect(r.x).toBe(2);
-    expect(r.y).toBe(34);
+    expect(r.x).toBe(1);
+    expect(r.y).toBe(32);
   });
 
   it('viewport center maps correctly', () => {
-    const r = toScreen({ x: 20, y: 17 }, 0, VH);
-    expect(r.x).toBe(22);
-    expect(r.y).toBe(17);
+    const r = toScreen({ x: 20, y: 16 }, 0, VH);
+    expect(r.x).toBe(21);
+    expect(r.y).toBe(16);
   });
 
   it('top-right corner of default viewport', () => {
-    const r = toScreen({ x: 40, y: 34 }, 0, VH);
-    expect(r.x).toBe(42);
+    const r = toScreen({ x: 40, y: 32 }, 0, VH);
+    expect(r.x).toBe(41);
     expect(r.y).toBe(0);
   });
 
   it('left margin edge → svgX = 0', () => {
-    const r = toScreen({ x: -FIELD.marginM, y: 17 }, 0, VH);
+    const r = toScreen({ x: -FIELD.marginM, y: 16 }, 0, VH);
     expect(r.x).toBe(0);
   });
 
-  it('right margin edge → svgX = 44', () => {
-    const r = toScreen({ x: FIELD.widthM + FIELD.marginM, y: 17 }, 0, VH);
-    expect(r.x).toBe(44);
+  it('right margin edge → svgX = SVG_WIDTH_M', () => {
+    const r = toScreen({ x: FIELD.widthM + FIELD.marginM, y: 16 }, 0, VH);
+    expect(r.x).toBe(42);
   });
 
-  it('scrolled view: viewY=-2 shifts y by -2', () => {
-    // canonical y=0 is 2m above the window bottom (viewY=-2), so svgY = -2+34-0 = 32
+  it('scrolled view: viewY=-marginM shifts y by -marginM', () => {
+    // canonical y=0 is marginM above the window bottom (viewY=-marginM)
     const r = toScreen({ x: 0, y: 0 }, -FIELD.marginM, VH);
-    expect(r.x).toBe(2);
-    expect(r.y).toBe(32);
+    expect(r.x).toBe(1);
+    expect(r.y).toBe(31);
   });
 
   it('distance is preserved (toScreen is an isometry)', () => {
@@ -79,9 +79,9 @@ describe('fromScreen', () => {
   it('toScreen is the inverse of fromScreen (roundtrip)', () => {
     const vy = 10;
     const svgPoints: Vec2[] = [
-      { x: 2, y: 34 },
-      { x: 22, y: 17 },
-      { x: 42, y: 0 },
+      { x: 1, y: 32 },
+      { x: 21, y: 16 },
+      { x: 41, y: 0 },
     ];
     for (const s of svgPoints) {
       const back = toScreen(fromScreen(s, vy, VH), vy, VH);

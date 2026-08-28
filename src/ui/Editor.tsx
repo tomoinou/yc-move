@@ -8,9 +8,12 @@ import { usePlayStore } from '../state/playStore.ts';
 import { useEditorStore } from '../state/editorStore.ts';
 import { usePlayback } from '../state/usePlayback.ts';
 import { FIELD } from '../core/field.ts';
-import { VIEW_HEIGHT_M, fromScreen } from '../core/camera.ts';
+import { VIEW_HEIGHT_M, SVG_WIDTH_M, fromScreen } from '../core/camera.ts';
 import { ballStateAt } from '../core/ball.ts';
+import { entityPositionAt } from '../core/interpolate.ts';
 import type { Vec2, Entity } from '../core/types.ts';
+
+const AT_PHASE_TOLERANCE_MS = 50;
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -38,8 +41,8 @@ function setTrackKey(entity: Entity, t: number, p: Vec2): void {
 export function Editor() {
   const { play, canUndo, canRedo, commit, undo, redo } = usePlayStore();
   const {
-    selectedId, currentPhaseIdx, scrollMode, addMode, viewY: editorViewY,
-    select, setPhaseIdx, setScrollMode, setAddMode, setViewY,
+    selectedId, currentPhaseIdx, isEditActive, scrollMode, addMode, viewY: editorViewY,
+    select, setPhaseIdx, setIsEditActive, setScrollMode, setAddMode, setViewY,
   } = useEditorStore();
   const lastPhaseTime = play.markers.length > 0 ? play.markers[play.markers.length - 1] + 100 : 0;
   const { currentTime, isPlaying, play: playback, pause, seek } = usePlayback(play.durationMs, lastPhaseTime);
@@ -54,7 +57,7 @@ export function Editor() {
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
       if (width > 0) {
-        const vh = height * 44 / width;
+        const vh = height * SVG_WIDTH_M / width;
         setViewH(vh);
         if (!initialCenteredRef.current) {
           initialCenteredRef.current = true;
@@ -73,10 +76,15 @@ export function Editor() {
   // スクロール状態（ローカルのみ）
   const scrollRef = useRef<{ startClientY: number; startViewY: number } | null>(null);
 
+
+  const phaseTimes = [0, ...play.markers];
+  const currentPhaseTime = phaseTimes[currentPhaseIdx] ?? 0;
+  const isAtPhase = isEditActive && !isPlaying && Math.abs(currentTime - currentPhaseTime) <= AT_PHASE_TOLERANCE_MS;
+
   // 最新値を window リスナーから参照するための mutable ref
-  const latestRef = useRef({ play, currentPhaseIdx, selectedId, editorViewY, scrollMode, addMode });
+  const latestRef = useRef({ play, currentPhaseIdx, selectedId, editorViewY, scrollMode, addMode, isAtPhase, currentTime });
   useEffect(() => {
-    latestRef.current = { play, currentPhaseIdx, selectedId, editorViewY, scrollMode, addMode };
+    latestRef.current = { play, currentPhaseIdx, selectedId, editorViewY, scrollMode, addMode, isAtPhase, currentTime };
   });
 
   // undo/redo 後の viewY を反映
@@ -84,8 +92,10 @@ export function Editor() {
     setViewY(play.viewY);
   }, [play.viewY, setViewY]);
 
-  const phaseTimes = [0, ...play.markers];
-  const currentPhaseTime = phaseTimes[currentPhaseIdx] ?? 0;
+  // 再生開始時に編集モードを解除
+  useEffect(() => {
+    if (isPlaying) setIsEditActive(false);
+  }, [isPlaying, setIsEditActive]);
 
   // オニオンスキン: 停止中かつフレーム時刻一致時のみ前フレームをゴースト表示
   const onionSkinTimes: number[] = [];
@@ -100,7 +110,7 @@ export function Editor() {
   function pointerToCanonical(clientX: number, clientY: number): Vec2 | null {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect || rect.width === 0) return null;
-    const scale = 44 / rect.width;
+    const scale = SVG_WIDTH_M / rect.width;
     const svgPt: Vec2 = {
       x: (clientX - rect.left) * scale,
       y: (clientY - rect.top) * scale,
@@ -115,11 +125,12 @@ export function Editor() {
       if (scrollRef.current) {
         const rect = svgRef.current?.getBoundingClientRect();
         if (!rect || rect.width === 0) return;
-        const scale = 44 / rect.width;
+        const scale = SVG_WIDTH_M / rect.width;
         const deltaM = (e.clientY - scrollRef.current.startClientY) * scale;
         const vh = rect.height * scale;
-        const maxViewY = Math.max(-FIELD.inGoalM, FIELD.lengthM + FIELD.inGoalM - vh);
-        const next = clamp(scrollRef.current.startViewY + deltaM, -FIELD.inGoalM, maxViewY);
+        const minViewY = -(FIELD.inGoalM + FIELD.marginM);
+        const maxViewY = Math.max(minViewY, FIELD.lengthM + FIELD.inGoalM + FIELD.marginM - vh);
+        const next = clamp(scrollRef.current.startViewY + deltaM, minViewY, maxViewY);
         setViewY(next);
         return;
       }
@@ -146,9 +157,7 @@ export function Editor() {
       if (drag.moved) {
         const rawPos = pointerToCanonical(e.clientX, e.clientY);
         if (rawPos) {
-          const rect = svgRef.current?.getBoundingClientRect();
-          const offsetM = rect && rect.width > 0 ? 36 * 44 / rect.width : 2;
-          const canonical = clampCanonical({ x: rawPos.x, y: rawPos.y + offsetM });
+          const canonical = clampCanonical(rawPos);
           const { currentPhaseIdx: idx, play: currentPlay } = latestRef.current;
           const t = [0, ...currentPlay.markers][idx] ?? 0;
           commit(draft => {
@@ -170,17 +179,13 @@ export function Editor() {
     };
   }, [commit, setViewY]);
 
-  const handleTokenPointerDown = useCallback((entityId: string) => {
-    if (latestRef.current.selectedId === entityId) {
-      select(null);
-      return;
-    }
-    select(entityId);
-    dragRef.current = { entityId, moved: false };
-  }, [select]);
+  // フレーム点灯中でなければ選択解除して離脱
+  useEffect(() => {
+    if (!isAtPhase && selectedId) select(null);
+  }, [isAtPhase, selectedId, select]);
 
   const handleSvgPointerDown = useCallback((canonical: Vec2, clientY: number) => {
-    const { scrollMode: sm, addMode: am, currentPhaseIdx: idx, play: cp, selectedId: sel } = latestRef.current;
+    const { scrollMode: sm, addMode: am, isAtPhase: iap, play: cp, currentTime: ct } = latestRef.current;
 
     if (sm) {
       scrollRef.current = { startClientY: clientY, startViewY: latestRef.current.editorViewY };
@@ -203,7 +208,6 @@ export function Editor() {
           label,
           track: [{ t: 0, p: canonical }],
         });
-        // 最初のアタッカー追加時、ボール保持者が未設定なら自動割当
         if (isAttack && draft.entities.filter(e => e.side === 'attack').length === 1) {
           if (draft.ball.holders.length === 0) {
             draft.ball.holders = [{ t: 0, holderId: id }];
@@ -215,12 +219,32 @@ export function Editor() {
       return;
     }
 
-    if (!sel) return;
-    const t = [0, ...cp.markers][idx] ?? 0;
-    commit(draft => {
-      const entity = draft.entities.find(e => e.id === sel);
-      if (entity) setTrackKey(entity, t, clampCanonical(canonical));
-    });
+    if (!iap) return;
+
+    // タップ位置から最近接プレイヤーを探す
+    const rect = svgRef.current?.getBoundingClientRect();
+    const hitRadiusM = rect && rect.width > 0 ? Math.max(5, 44 * SVG_WIDTH_M / rect.width) : 5;
+    let nearestId: string | null = null;
+    let nearestDist = Infinity;
+    for (const entity of cp.entities) {
+      const pos = entityPositionAt(entity, ct);
+      const dx = canonical.x - pos.x;
+      const dy = canonical.y - pos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist <= hitRadiusM && dist < nearestDist) {
+        nearestId = entity.id;
+        nearestDist = dist;
+      }
+    }
+
+    if (nearestId === null) return;
+
+    if (latestRef.current.selectedId === nearestId) {
+      select(null);
+    } else {
+      select(nearestId);
+      dragRef.current = { entityId: nearestId, moved: false };
+    }
   }, [commit, setAddMode, select]);
 
   const handleAddEntity = useCallback((side: 'attack' | 'defence') => {
@@ -267,17 +291,30 @@ export function Editor() {
 
   const handlePhaseSelect = useCallback((idx: number) => {
     setPhaseIdx(idx);
+    setIsEditActive(true);
     const t = [0, ...play.markers][idx] ?? 0;
     seek(t);
-  }, [play.markers, setPhaseIdx, seek]);
+  }, [play.markers, setPhaseIdx, setIsEditActive, seek]);
+
+  const handlePhaseDeactivate = useCallback(() => {
+    setIsEditActive(false);
+  }, [setIsEditActive]);
 
   const handlePhaseDelete = useCallback((idx: number) => {
     if (idx <= 0) return;
+    const deletedTime = [0, ...play.markers][idx];
     commit(draft => {
       draft.markers.splice(idx - 1, 1);
+      // 削除フレームの時刻のトラックキーを全エンティティから除去
+      for (const entity of draft.entities) {
+        entity.track = entity.track.filter(k => k.t !== deletedTime);
+        if (entity.track.length === 0) entity.track = [{ t: 0, p: { x: FIELD.widthM / 2, y: FIELD.halfM } }];
+      }
+      // ボール保持者の同時刻エントリも除去
+      draft.ball.holders = draft.ball.holders.filter(h => h.t !== deletedTime);
     });
     if (currentPhaseIdx >= idx) setPhaseIdx(Math.max(0, currentPhaseIdx - 1));
-  }, [commit, setPhaseIdx, currentPhaseIdx]);
+  }, [commit, setPhaseIdx, currentPhaseIdx, play.markers]);
 
   const handleEntityDelete = useCallback(() => {
     if (!selectedId) return;
@@ -309,6 +346,19 @@ export function Editor() {
     });
   }, [commit]);
 
+  const handleEditDuration = useCallback(() => {
+    const current = Math.round(play.durationMs / 1000);
+    const input = window.prompt('アニメーション時間', String(current));
+    if (!input) return;
+    const secs = parseFloat(input);
+    if (!isFinite(secs) || secs <= 0) { window.alert('正の数を入力してください'); return; }
+    const newMs = Math.round(secs * 1000);
+    const lastMarker = play.markers.length > 0 ? play.markers[play.markers.length - 1] : 0;
+    if (newMs <= lastMarker) { window.alert(`最後のフレーム時刻（${Math.round(lastMarker / 1000)}）より大きい値にしてください`); return; }
+    commit(draft => { draft.durationMs = newMs; });
+    if (currentTime > newMs) seek(newMs);
+  }, [play.durationMs, play.markers, currentTime, commit, seek]);
+
   const handleToggleScroll = useCallback(() => {
     setScrollMode(!scrollMode);
     if (!scrollMode) {
@@ -330,7 +380,6 @@ export function Editor() {
           scrollMode={scrollMode}
           svgRef={svgRef}
           onSvgPointerDown={handleSvgPointerDown}
-          onTokenPointerDown={handleTokenPointerDown}
         />
         {scrollMode && <ScrollIndicator viewY={editorViewY} viewH={viewH} />}
       </div>
@@ -338,7 +387,10 @@ export function Editor() {
         markers={play.markers}
         currentTime={currentTime}
         isPlaying={isPlaying}
+        isEditActive={isEditActive}
+        currentPhaseIdx={currentPhaseIdx}
         onSelect={handlePhaseSelect}
+        onDeactivate={handlePhaseDeactivate}
         onAdd={handlePhaseAdd}
         onDelete={handlePhaseDelete}
       />
@@ -349,6 +401,7 @@ export function Editor() {
         onPlay={playback}
         onPause={pause}
         onSeek={seek}
+        onEditDuration={handleEditDuration}
       />
       <EntityPanel
         play={play}

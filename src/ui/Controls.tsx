@@ -5,10 +5,11 @@ interface ControlsProps {
   onPlay: () => void;
   onPause: () => void;
   onSeek: (t: number) => void;
+  onEditDuration?: () => void;
 }
 
 export function Controls({
-  currentTime, durationMs, isPlaying, onPlay, onPause, onSeek,
+  currentTime, durationMs, isPlaying, onPlay, onPause, onSeek, onEditDuration,
 }: ControlsProps) {
   return (
     <div style={{
@@ -46,8 +47,16 @@ export function Controls({
         onChange={() => {}}
         style={{ flex: 1, accentColor: '#E8272A' }}
       />
-      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', flexShrink: 0 }}>
-        {Math.round(currentTime / 1000)}/{Math.round(durationMs / 1000)}
+      <div
+        onClick={onEditDuration}
+        style={{
+          fontSize: 11, color: 'rgba(255,255,255,0.7)', flexShrink: 0,
+          cursor: onEditDuration ? 'pointer' : undefined,
+          padding: '2px 4px', borderRadius: 3,
+          background: onEditDuration ? 'rgba(255,255,255,0.08)' : undefined,
+        }}
+      >
+        {Math.round(currentTime / 1000)}/<u>{Math.round(durationMs / 1000)}</u>
       </div>
     </div>
   );

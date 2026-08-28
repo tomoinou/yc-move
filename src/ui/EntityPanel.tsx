@@ -46,8 +46,8 @@ export function EntityPanel({
       padding: '3px 10px',
       flexShrink: 0,
     }}>
-      <button style={btn(true, addMode === 'attack' ? '#E8272A' : '#8B0000')} onClick={onAddAttack}>+A</button>
-      <button style={btn(true, addMode === 'defence' ? '#1755B8' : '#003580')} onClick={onAddDefence}>+D</button>
+      <button style={btn(true, addMode === 'attack' ? '#E8272A' : 'rgba(232,39,42,0.4)')} onClick={onAddAttack}>+A</button>
+      <button style={btn(true, addMode === 'defence' ? '#1755B8' : 'rgba(23,85,184,0.4)')} onClick={onAddDefence}>+D</button>
       <button style={btn(true, scrollMode ? '#555500' : undefined)} onClick={onToggleScroll}>↕</button>
 
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, fontSize: 13 }}>
@@ -58,11 +58,20 @@ export function EntityPanel({
               style={{
                 ...btn(ballActive, '#BB6600'),
                 padding: '3px 8px',
-                fontSize: 15,
+                display: 'flex',
+                alignItems: 'center',
               }}
               title="このフレームでボールを保持"
             >
-              🏉
+              <svg width="21" height="21" viewBox="-1 -1 2 2">
+                <g transform="rotate(-45)">
+                  <ellipse rx={0.75} ry={0.42} fill="#FFE600" stroke="rgba(0,0,0,0.2)" strokeWidth={0.04} />
+                  <line x1={-0.70} y1={0} x2={0.70} y2={0} stroke="rgba(0,0,0,0.3)" strokeWidth={0.08} />
+                  {[-0.25, 0, 0.25].map(x => (
+                    <line key={x} x1={x} y1={-0.32} x2={x} y2={0.32} stroke="rgba(0,0,0,0.45)" strokeWidth={0.065} />
+                  ))}
+                </g>
+              </svg>
             </button>
             <button
               onClick={onEditLabel}

@@ -1,9 +1,23 @@
-import type { Play, Vec2 } from '../core/types.ts';
+import type { Play, Vec2, Entity } from '../core/types.ts';
 import type { RefObject } from 'react';
 import { FIELD } from '../core/field.ts';
-import { toScreen, VIEW_HEIGHT_M, fromScreen } from '../core/camera.ts';
+import { toScreen, VIEW_HEIGHT_M, SVG_WIDTH_M, fromScreen } from '../core/camera.ts';
 import { entityPositionAt } from '../core/interpolate.ts';
 import { ballStateAt } from '../core/ball.ts';
+
+// ドラッグ中のエンティティに対し、currentTime のキーをドラッグ位置で仮置換したコピーを返す
+function withDragPos(entity: Entity, dragOverride: { entityId: string; pos: Vec2 } | null | undefined, t: number): Entity {
+  if (!dragOverride || dragOverride.entityId !== entity.id) return entity;
+  const existing = entity.track.findIndex(k => k.t === t);
+  if (existing >= 0) {
+    return { ...entity, track: entity.track.map((k, i) => i === existing ? { ...k, p: dragOverride.pos } : k) };
+  }
+  const newTrack = [...entity.track];
+  const ins = newTrack.findIndex(k => k.t > t);
+  if (ins === -1) newTrack.push({ t, p: dragOverride.pos });
+  else newTrack.splice(ins, 0, { t, p: dragOverride.pos });
+  return { ...entity, track: newTrack };
+}
 
 const TOKEN_RADIUS = 1.2;
 const MAX_FONT = 1.0;
@@ -32,7 +46,7 @@ function tokenFontSize(label: string): number {
 }
 
 function pointerToSvgCoords(clientX: number, clientY: number, rect: DOMRect): Vec2 {
-  const scale = 44 / rect.width;
+  const scale = SVG_WIDTH_M / rect.width;
   return {
     x: (clientX - rect.left) * scale,
     y: (clientY - rect.top) * scale,
@@ -51,7 +65,6 @@ interface PitchProps {
   scrollMode?: boolean;
   svgRef?: RefObject<SVGSVGElement | null>;
   onSvgPointerDown?: (canonical: Vec2, clientY: number) => void;
-  onTokenPointerDown?: (entityId: string) => void;
 }
 
 export function Pitch({
@@ -65,21 +78,14 @@ export function Pitch({
   scrollMode = false,
   svgRef,
   onSvgPointerDown,
-  onTokenPointerDown,
 }: PitchProps) {
   const ts = (p: Vec2) => toScreen(p, viewY, viewH);
-
-  // Hit radius / finger-offset: 44 or 36 screen-px → SVG meters via 44/width scale.
-  const svgRect = svgRef?.current?.getBoundingClientRect();
-  const svgScale = svgRect && svgRect.width > 0 ? 44 / svgRect.width : null;
-  const hitR = svgScale ? Math.max(5, 44 * svgScale) : 5;
-  const fingerOffsetM = svgScale ? 36 * svgScale : 2;
 
   const boundaryStroke = scrollMode ? 'rgba(255,255,100,0.8)' : 'white';
 
   const hLine = (y: number, strokeWidth: number, strokeDasharray?: string, stroke?: string) => {
-    const p1 = ts({ x: -FIELD.marginM, y });
-    const p2 = ts({ x: FIELD.widthM + FIELD.marginM, y });
+    const p1 = ts({ x: 0, y });
+    const p2 = ts({ x: FIELD.widthM, y });
     return (
       <line
         key={`h-${y}`}
@@ -108,23 +114,27 @@ export function Pitch({
   const inGoalBottomOrigin = ts({ x: 0, y: 0 });
   const inGoalTopOrigin = ts({ x: 0, y: FIELD.lengthM + FIELD.inGoalM });
   const bs = ballStateAt(play, currentTime);
-  const ballCarrierPos = bs.holderId !== null
-    ? (dragOverride?.entityId === bs.holderId
-        ? { x: dragOverride.pos.x, y: dragOverride.pos.y + fingerOffsetM }
-        : bs.pos)
-    : null;
-  const ballCanonical = ballCarrierPos !== null
-    ? { x: ballCarrierPos.x, y: ballCarrierPos.y + TOKEN_RADIUS }
+  // ドラッグ中のキャリア位置を上書き（保持時のみ）
+  const basePos = bs.holderId !== null && dragOverride?.entityId === bs.holderId
+    ? dragOverride.pos
     : bs.pos;
+  // 攻撃: 円上部(+)、守備: 円下部(-)
+  const BALL_OFFSET = TOKEN_RADIUS + 0.6;
+  const sideOffset = (side: 'attack' | 'defence') => side === 'defence' ? -BALL_OFFSET : BALL_OFFSET;
+  const yOffset = bs.flightInfo
+    ? sideOffset(bs.flightInfo.fromSide) * (1 - bs.flightInfo.fraction) + sideOffset(bs.flightInfo.toSide) * bs.flightInfo.fraction
+    : sideOffset(bs.holderSide ?? 'attack');
+  const ballCanonical = { x: basePos.x, y: basePos.y + yOffset };
   const bp = ts(ballCanonical);
 
   return (
     <svg
       ref={svgRef}
-      viewBox={`0 0 44 ${viewH}`}
+      viewBox={`0 0 ${SVG_WIDTH_M} ${viewH}`}
       width="100%"
       height="100%"
-      style={{ display: 'block', touchAction: 'none' }}
+      style={{ display: 'block', touchAction: 'pinch-zoom' }}
+      onContextMenu={(e) => e.preventDefault()}
       onPointerDown={(e) => {
         if (!onSvgPointerDown) return;
         const rect = e.currentTarget.getBoundingClientRect();
@@ -133,7 +143,7 @@ export function Pitch({
       }}
     >
       {/* 茶色（ハードコート）: タッチライン外マージン（全背景） */}
-      <rect x={0} y={0} width={44} height={viewH} fill="#7B3A1E" />
+      <rect x={0} y={0} width={SVG_WIDTH_M} height={viewH} fill="#7B3A1E" />
 
       {/* 暗い緑: インゴールエリア */}
       <rect x={inGoalBottomOrigin.x} y={inGoalBottomOrigin.y} width={FIELD.widthM} height={FIELD.inGoalM} fill="#1a5c1a" />
@@ -152,24 +162,26 @@ export function Pitch({
       {hLine(-FIELD.inGoalM, 0.3, undefined, boundaryStroke)}
       {hLine(FIELD.lengthM + FIELD.inGoalM, 0.3, undefined, boundaryStroke)}
 
-      {/* 太実線: トライライン・ハーフウェイ */}
+      {/* 太実線: トライライン */}
       {hLine(0, 0.3, undefined, boundaryStroke)}
       {hLine(FIELD.lengthM, 0.3, undefined, boundaryStroke)}
-      {hLine(FIELD.halfM, 0.3)}
+
+      {/* 太実線: ハーフウェイライン（半透明） */}
+      {hLine(FIELD.halfM, 0.3, undefined, 'rgba(255,255,255,0.5)')}
 
       {/* 太実線: タッチライン（デッドボールラインまで延長） */}
       {vLine(0, 0.3, boundaryStroke)}
       {vLine(FIELD.widthM, 0.3, boundaryStroke)}
 
-      {/* 細実線: 10m ライン */}
-      {hLine(10, 0.15)}
-      {hLine(50, 0.15)}
+      {/* 細実線: 10m ライン（半透明） */}
+      {hLine(10, 0.15, undefined, 'rgba(255,255,255,0.5)')}
+      {hLine(50, 0.15, undefined, 'rgba(255,255,255,0.5)')}
 
-      {/* 破線: 5m ライン */}
-      {hLine(25, 0.15, '1 0.5')}
-      {hLine(35, 0.15, '1 0.5')}
+      {/* 破線: 5m ライン（半透明） */}
+      {hLine(25, 0.15, '1 0.5', 'rgba(255,255,255,0.5)')}
+      {hLine(35, 0.15, '1 0.5', 'rgba(255,255,255,0.5)')}
 
-      {/* 交線ティック */}
+      {/* 交線ティック（半透明） */}
       {TICK_XS.flatMap(tx =>
         LINE_YS.map(ly => {
           const p1 = ts({ x: tx, y: ly - 0.5 });
@@ -178,7 +190,7 @@ export function Pitch({
             <line
               key={`tick-${tx}-${ly}`}
               x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-              stroke="white"
+              stroke="rgba(255,255,255,0.5)"
               strokeWidth={0.15}
             />
           );
@@ -186,13 +198,16 @@ export function Pitch({
       )}
 
       {/* 軌跡オーバーレイ */}
-      {play.entities.map(entity =>
-        entity.track.slice(0, -1).map((k, i) => {
-          const k2 = entity.track[i + 1];
+      {play.entities.map(entity => {
+        const eff = withDragPos(entity, dragOverride, currentTime);
+        return eff.track.slice(0, -1).map((k, i) => {
+          const k2 = eff.track[i + 1];
           if (k2.hold) return null;
+          if (k.t >= currentTime) return null;
+          const endT = Math.min(k2.t, currentTime);
           const d = Array.from({ length: TRACK_SAMPLES + 1 }, (_, s) => {
-            const t = k.t + (k2.t - k.t) * (s / TRACK_SAMPLES);
-            const sp = ts(entityPositionAt(entity, t));
+            const t = k.t + (endT - k.t) * (s / TRACK_SAMPLES);
+            const sp = ts(entityPositionAt(eff, t));
             return `${s === 0 ? 'M' : 'L'}${sp.x},${sp.y}`;
           }).join(' ');
           return (
@@ -204,8 +219,8 @@ export function Pitch({
               strokeWidth={0.12}
             />
           );
-        }),
-      )}
+        });
+      })}
 
       {/* オニオンスキン: 前後フェーズのゴースト */}
       {onionSkinTimes?.flatMap(t =>
@@ -229,9 +244,8 @@ export function Pitch({
         const rawPos = entityPositionAt(entity, currentTime);
         const isSelected = selectedId === entity.id;
 
-        // ドラッグ中は指先位置 + 上オフセットで表示
         const displayCanonical = dragOverride?.entityId === entity.id
-          ? { x: dragOverride.pos.x, y: dragOverride.pos.y + fingerOffsetM }
+          ? dragOverride.pos
           : rawPos;
         const pos = ts(displayCanonical);
         const fs = tokenFontSize(entity.label);
@@ -268,55 +282,18 @@ export function Pitch({
             >
               {entity.label}
             </text>
-            {/* ヒット判定用透明サークル (編集モード時 + 非スクロールモード時のみ) */}
-            {onTokenPointerDown && !scrollMode && (
-              <circle
-                cx={pos.x} cy={pos.y}
-                r={hitR}
-                fill="transparent"
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  onTokenPointerDown(entity.id);
-                }}
-              />
-            )}
           </g>
         );
       })}
 
-      {/* ボール（ラグビーボール形状） */}
-      <g pointerEvents="none" transform={`rotate(45,${bp.x},${bp.y})`}>
-        <ellipse
-          cx={bp.x} cy={bp.y}
-          rx={0.38} ry={0.62}
-          fill={bs.isForward ? '#FF8C00' : '#FFE600'}
-          stroke="rgba(0,0,0,0.7)"
-          strokeWidth={0.06}
-        />
-        {/* 縫い目ライン */}
-        <line x1={bp.x} y1={bp.y - 0.52} x2={bp.x} y2={bp.y + 0.52}
-          stroke="rgba(255,255,255,0.7)" strokeWidth={0.05} />
-        <path
-          d={`M ${bp.x - 0.2} ${bp.y - 0.12} Q ${bp.x} ${bp.y - 0.28} ${bp.x + 0.2} ${bp.y - 0.12}`}
-          fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth={0.05}
-        />
-        <path
-          d={`M ${bp.x - 0.2} ${bp.y + 0.12} Q ${bp.x} ${bp.y + 0.28} ${bp.x + 0.2} ${bp.y + 0.12}`}
-          fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth={0.05}
-        />
+      {/* ボール: SVG 図形（絵文字はデバイス依存のため使用しない） */}
+      <g transform={`translate(${bp.x},${bp.y}) rotate(-45) scale(1.2)`} pointerEvents="none">
+        <ellipse rx={0.62} ry={0.35} fill="#FFE600" stroke="rgba(0,0,0,0.2)" strokeWidth={0.03} />
+        <line x1={-0.57} y1={0} x2={0.57} y2={0} stroke="rgba(0,0,0,0.3)" strokeWidth={0.055} />
+        {([-0.18, 0, 0.18] as const).map(x => (
+          <line key={x} x1={x} y1={-0.25} x2={x} y2={0.25} stroke="rgba(0,0,0,0.45)" strokeWidth={0.045} />
+        ))}
       </g>
-      {bs.isForward && (
-        <text
-          x={bp.x} y={bp.y - 1.2}
-          fontSize={0.8}
-          fontFamily="sans-serif"
-          fill="#FF8C00"
-          textAnchor="middle"
-          pointerEvents="none"
-        >
-          FWD
-        </text>
-      )}
 
       {/* 注釈: from/to でフィルタ */}
       {play.annotations

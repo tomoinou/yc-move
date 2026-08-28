@@ -6,13 +6,16 @@ interface PhaseChipsProps {
   markers: number[];
   currentTime: number;
   isPlaying: boolean;
+  isEditActive: boolean;
+  currentPhaseIdx: number;
   onSelect: (idx: number) => void;
+  onDeactivate: () => void;
   onAdd: () => void;
   onDelete: (idx: number) => void;
 }
 
 export function PhaseChips({
-  markers, currentTime, isPlaying, onSelect, onAdd, onDelete,
+  markers, currentTime, isPlaying, isEditActive, currentPhaseIdx, onSelect, onDeactivate, onAdd, onDelete,
 }: PhaseChipsProps) {
   const phaseTimes = [0, ...markers];
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -45,28 +48,28 @@ export function PhaseChips({
         }}
       >
         {phaseTimes.map((t, i) => {
-          const isActive = !isPlaying && Math.abs(currentTime - t) <= AT_PHASE_TOLERANCE_MS;
+          const isActive = isEditActive && !isPlaying && i === currentPhaseIdx && Math.abs(currentTime - t) <= AT_PHASE_TOLERANCE_MS;
           return (
             <div key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
               <button
-                onClick={() => onSelect(i)}
+                onClick={() => isActive ? onDeactivate() : onSelect(i)}
                 style={{
-                  background: isActive ? '#E8272A' : 'rgba(255,255,255,0.15)',
+                  background: isActive ? '#555500' : 'rgba(255,255,255,0.15)',
                   color: 'white',
                   border: 'none',
-                  borderRadius: i === 0 ? 4 : '4px 0 0 4px',
-                  padding: '4px 10px',
+                  borderRadius: (i === 0 || !isActive) ? 4 : '4px 0 0 4px',
+                  padding: isActive ? '4px 13px' : '4px 10px',
                   fontSize: 13,
                   cursor: 'pointer',
                 }}
               >
-                {'F'}{i}
+                {'F'}{i + 1}
               </button>
-              {i > 0 && (
+              {i > 0 && isActive && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onDelete(i); }}
                   style={{
-                    background: isActive ? '#E8272A' : 'rgba(255,255,255,0.15)',
+                    background: '#555500',
                     color: 'rgba(255,255,255,0.7)',
                     border: 'none',
                     borderLeft: '1px solid rgba(0,0,0,0.3)',

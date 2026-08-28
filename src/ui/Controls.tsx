@@ -35,7 +35,7 @@ export function Controls({
           flexShrink: 0,
         }}
       >
-        {isPlaying ? '⏸' : '▶'}
+        {isPlaying ? '⏸︎' : '▶'}
       </button>
       <input
         type="range"

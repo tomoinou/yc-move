@@ -37,20 +37,13 @@ function setTrackKey(entity: Entity, t: number, p: Vec2): void {
 }
 
 function nextAttackLabel(entities: Entity[]): string {
-  const used = new Set(entities.filter(e => e.side === 'attack').map(e => e.label));
-  for (let i = 1; i <= 9; i++) {
-    if (!used.has(String(i))) return String(i);
-  }
-  return String(entities.filter(e => e.side === 'attack').length + 1);
+  const n = entities.filter(e => e.side === 'attack').length;
+  return `A${n + 1}`;
 }
 
 function nextDefenceLabel(entities: Entity[]): string {
-  const used = new Set(entities.filter(e => e.side === 'defence').map(e => e.label));
-  for (let i = 1; i <= 9; i++) {
-    const label = `D${i}`;
-    if (!used.has(label)) return label;
-  }
-  return `D${entities.filter(e => e.side === 'defence').length + 1}`;
+  const n = entities.filter(e => e.side === 'defence').length;
+  return `D${n + 1}`;
 }
 
 const MAX_VIEW_Y = FIELD.lengthM - VH + FIELD.marginM;

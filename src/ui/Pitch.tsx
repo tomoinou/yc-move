@@ -47,8 +47,10 @@ interface PitchProps {
   selectedId?: string | null;
   onionSkinTimes?: number[];
   dragOverride?: { entityId: string; pos: Vec2 } | null;
+  scrollMode?: boolean;
+  passArrow?: { from: Vec2; to: Vec2 } | null;
   svgRef?: RefObject<SVGSVGElement | null>;
-  onPitchPointerDown?: (canonical: Vec2) => void;
+  onSvgPointerDown?: (canonical: Vec2, clientY: number) => void;
   onTokenPointerDown?: (entityId: string) => void;
 }
 
@@ -59,14 +61,15 @@ export function Pitch({
   selectedId,
   onionSkinTimes,
   dragOverride,
+  scrollMode = false,
+  passArrow,
   svgRef,
-  onPitchPointerDown,
+  onSvgPointerDown,
   onTokenPointerDown,
 }: PitchProps) {
   const ts = (p: Vec2) => toScreen(p, viewY, VH);
 
   // Hit radius: 44 screen-px converted to SVG meters.
-  // Falls back to 5 on first render (before svgRef is set).
   const hitR = svgRef?.current
     ? Math.max(5, 44 * VH / svgRef.current.getBoundingClientRect().height)
     : 5;
@@ -76,28 +79,30 @@ export function Pitch({
     ? 36 * VH / svgRef.current.getBoundingClientRect().height
     : 2;
 
-  const hLine = (y: number, strokeWidth: number, strokeDasharray?: string) => {
+  const boundaryStroke = scrollMode ? 'rgba(255,255,100,0.8)' : 'white';
+
+  const hLine = (y: number, strokeWidth: number, strokeDasharray?: string, stroke?: string) => {
     const p1 = ts({ x: -FIELD.marginM, y });
     const p2 = ts({ x: FIELD.widthM + FIELD.marginM, y });
     return (
       <line
         key={`h-${y}`}
         x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-        stroke="white"
+        stroke={stroke ?? 'white'}
         strokeWidth={strokeWidth}
         strokeDasharray={strokeDasharray}
       />
     );
   };
 
-  const vLine = (x: number, strokeWidth: number) => {
+  const vLine = (x: number, strokeWidth: number, stroke?: string) => {
     const p1 = ts({ x, y: -FIELD.marginM });
     const p2 = ts({ x, y: FIELD.lengthM + FIELD.marginM });
     return (
       <line
         key={`v-${x}`}
         x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-        stroke="white"
+        stroke={stroke ?? 'white'}
         strokeWidth={strokeWidth}
       />
     );
@@ -114,12 +119,18 @@ export function Pitch({
       width="100%"
       style={{ display: 'block', aspectRatio: `44/${VH}`, touchAction: 'none' }}
       onPointerDown={(e) => {
-        if (!onPitchPointerDown) return;
+        if (!onSvgPointerDown) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const svgPt = pointerToSvgCoords(e.clientX, e.clientY, rect);
-        onPitchPointerDown(fromScreen(svgPt, viewY, VH));
+        onSvgPointerDown(fromScreen(svgPt, viewY, VH), e.clientY);
       }}
     >
+      <defs>
+        <marker id="pass-arrow" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto">
+          <path d="M0,0 L4,2 L0,4 z" fill="rgba(255,220,0,0.9)" />
+        </marker>
+      </defs>
+
       {/* 暗い緑: マージン含む全背景 */}
       <rect x={0} y={0} width={44} height={VH} fill="#1a5c1a" />
 
@@ -133,13 +144,13 @@ export function Pitch({
       />
 
       {/* 太実線: トライライン・ハーフウェイ */}
-      {hLine(0, 0.3)}
-      {hLine(FIELD.lengthM, 0.3)}
+      {hLine(0, 0.3, undefined, boundaryStroke)}
+      {hLine(FIELD.lengthM, 0.3, undefined, boundaryStroke)}
       {hLine(FIELD.halfM, 0.3)}
 
       {/* 太実線: タッチライン */}
-      {vLine(0, 0.3)}
-      {vLine(FIELD.widthM, 0.3)}
+      {vLine(0, 0.3, boundaryStroke)}
+      {vLine(FIELD.widthM, 0.3, boundaryStroke)}
 
       {/* 細実線: 10m ライン */}
       {hLine(10, 0.15)}
@@ -217,7 +228,7 @@ export function Pitch({
         const fs = tokenFontSize(entity.label);
 
         return (
-          <g key={entity.id}>
+          <g key={entity.id} opacity={scrollMode ? 0.4 : 1}>
             {/* 選択リング */}
             {isSelected && (
               <circle
@@ -247,8 +258,8 @@ export function Pitch({
             >
               {entity.label}
             </text>
-            {/* ヒット判定用透明サークル (編集モード時のみ) */}
-            {onTokenPointerDown && (
+            {/* ヒット判定用透明サークル (編集モード時 + 非スクロールモード時のみ) */}
+            {onTokenPointerDown && !scrollMode && (
               <circle
                 cx={pos.x} cy={pos.y}
                 r={hitR}
@@ -305,6 +316,22 @@ export function Pitch({
             </text>
           );
         })}
+
+      {/* パス矢印 */}
+      {passArrow && (() => {
+        const f = ts(passArrow.from);
+        const t2 = ts(passArrow.to);
+        return (
+          <line
+            x1={f.x} y1={f.y} x2={t2.x} y2={t2.y}
+            stroke="rgba(255,220,0,0.7)"
+            strokeWidth={0.25}
+            strokeDasharray="1 0.5"
+            markerEnd="url(#pass-arrow)"
+            pointerEvents="none"
+          />
+        );
+      })()}
     </svg>
   );
 }

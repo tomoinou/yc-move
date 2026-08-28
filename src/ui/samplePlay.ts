@@ -3,7 +3,7 @@ import { FIELD } from '../core/field.ts';
 
 export const samplePlay: Play = {
   schemaVersion: 1,
-  id: 'sample-m4',
+  id: 'sample-m5',
   title: 'M4 サンプルプレイ',
   meta: { tags: [], updatedAt: '2026-08-28T00:00:00Z' },
   durationMs: 6000,

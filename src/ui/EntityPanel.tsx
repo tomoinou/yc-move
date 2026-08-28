@@ -5,11 +5,15 @@ interface EntityPanelProps {
   selectedId: string | null;
   canUndo: boolean;
   canRedo: boolean;
+  scrollMode: boolean;
+  passMode: boolean;
   onAddAttack: () => void;
   onAddDefence: () => void;
   onEditLabel: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  onToggleScroll: () => void;
+  onTogglePass: () => void;
 }
 
 const btn = (active: boolean, color?: string) => ({
@@ -24,8 +28,9 @@ const btn = (active: boolean, color?: string) => ({
 } as const);
 
 export function EntityPanel({
-  play, selectedId, canUndo, canRedo,
+  play, selectedId, canUndo, canRedo, scrollMode, passMode,
   onAddAttack, onAddDefence, onEditLabel, onUndo, onRedo,
+  onToggleScroll, onTogglePass,
 }: EntityPanelProps) {
   const selected = play.entities.find(e => e.id === selectedId);
 
@@ -40,6 +45,8 @@ export function EntityPanel({
     }}>
       <button style={btn(true, '#8B0000')} onClick={onAddAttack}>+A</button>
       <button style={btn(true, '#003580')} onClick={onAddDefence}>+D</button>
+      <button style={btn(true, scrollMode ? '#555500' : undefined)} onClick={onToggleScroll}>↕</button>
+      <button style={btn(true, passMode ? '#556600' : undefined)} onClick={onTogglePass}>→</button>
 
       <div style={{ flex: 1, textAlign: 'center', fontSize: 13 }}>
         {selected ? (

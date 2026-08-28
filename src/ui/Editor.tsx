@@ -284,8 +284,9 @@ export function Editor() {
 
   const handlePhaseAdd = useCallback(() => {
     const lastFrameTime = play.markers.length > 0 ? play.markers[play.markers.length - 1] : 0;
-    const targetTime = lastFrameTime + 1000;
-    if (targetTime > play.durationMs) return;
+    const defaultTime = lastFrameTime + 1000;
+    const targetTime = currentTime > defaultTime ? currentTime : defaultTime;
+    if (targetTime > play.durationMs || [0, ...play.markers].includes(targetTime)) return;
 
     commit(draft => {
       draft.markers = [...draft.markers, targetTime].sort((a, b) => a - b);
@@ -294,7 +295,7 @@ export function Editor() {
     setPhaseIdx(newIdx);
     setIsEditActive(true);
     seek(targetTime);
-  }, [play.markers, play.durationMs, commit, setPhaseIdx, setIsEditActive, seek]);
+  }, [currentTime, play.markers, play.durationMs, commit, setPhaseIdx, setIsEditActive, seek]);
 
   const handlePhaseSelect = useCallback((idx: number) => {
     setPhaseIdx(idx);

@@ -277,7 +277,7 @@ export function Editor() {
       targetTime = currentPhaseTime + 1000;
     }
 
-    if (targetTime <= 0 || targetTime >= play.durationMs || times.includes(targetTime)) return;
+    if (targetTime <= 0 || targetTime > play.durationMs || times.includes(targetTime)) return;
 
     commit(draft => {
       draft.markers = [...draft.markers, targetTime].sort((a, b) => a - b);

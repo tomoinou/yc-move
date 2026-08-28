@@ -173,11 +173,7 @@ export function Editor() {
       if (!drag) { setDragOverride(null); return; }
 
       if (drag.moved) {
-        const dx = e.clientX - drag.startClientX;
-        const dy = e.clientY - drag.startClientY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const ramp = Math.min(1, dist / DRAG_RAMP_PX);
-        const rawPos = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX * ramp);
+        const rawPos = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX);
         if (rawPos) {
           const canonical = clampCanonical(rawPos);
           const { currentPhaseIdx: idx, play: currentPlay } = latestRef.current;

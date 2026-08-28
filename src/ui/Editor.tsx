@@ -368,12 +368,16 @@ export function Editor() {
   }, [scrollMode, setScrollMode, setAddMode]);
 
   const handleShare = useCallback(async () => {
-    const encoded = await encodePlay(play);
-    const url = `${location.origin}${location.pathname}#p=${encoded}`;
+    const urlPromise = encodePlay(play).then(encoded =>
+      new Blob([`${location.origin}${location.pathname}#p=${encoded}`], { type: 'text/plain' })
+    );
     try {
-      await navigator.clipboard.writeText(url);
+      // ClipboardItem に Promise を渡すことで、ユーザー操作の瞬間に書き込み要求を登録し
+      // 非同期エンコードの完了を待ってからクリップボードに書き込む
+      await navigator.clipboard.write([new ClipboardItem({ 'text/plain': urlPromise })]);
       window.alert('共有URLをコピーしました');
     } catch {
+      const url = `${location.origin}${location.pathname}#p=${await encodePlay(play)}`;
       window.prompt('以下のURLをコピーしてください', url);
     }
   }, [play]);

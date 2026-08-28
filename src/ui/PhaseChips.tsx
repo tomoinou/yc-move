@@ -35,9 +35,9 @@ export function PhaseChips({
               cursor: 'pointer',
             }}
           >
-            {'KF'}{i + 1}
+            {'F'}{i + 1}
             <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>
-              {(t / 1000).toFixed(1)}{'s'}
+              {i}
             </span>
           </button>
           {i > 0 && (

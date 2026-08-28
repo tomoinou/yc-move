@@ -43,13 +43,22 @@
 >
 > 計画には各ステップで作成・変更するファイル一覧を含めてください。
 
-M0 完了後、Cloudflare Pages を接続する（ブラウザ作業、10分）:
+M0 完了後、Cloudflare へ接続する（ブラウザ作業、10〜15分）:
 
+※ 2025〜2026 年のダッシュボード刷新で、新規アカウントには Pages の作成メニューが
+  表示されなくなった（静的サイトも Workers に統合された）。以下は Workers での手順。
+
+0. 先に Claude Code に依頼:
+   「wrangler.jsonc を追加して、この Vite アプリの dist を Workers の静的アセットとして
+    配信する設定にして。not_found_handling は single-page-application、
+    デプロイコマンドは npx wrangler deploy を想定。コミットして push して」
 1. dash.cloudflare.com でアカウント作成（無料・カード不要）
-2. Workers & Pages → Pages → Connect to Git → GitHub 連携 → yc-move を選択
-3. Framework preset: Vite（Build command: `npm run build` / Output: `dist`）
-4. Save and Deploy → 発行された URL をスマホで開いて表示確認
-5. 以後 `git push` のたびに自動デプロイされる
+2. 左メニュー「コンピューティング (Workers)」（英語 UI: Compute (Workers)。
+   旧称 Workers & Pages。見つからなければ「アプリケーションを作成」ボタンを探す）
+3. 「リポジトリをインポート」→ GitHub 連携 → yc-move を選択
+4. ビルド設定: Build command `npm run build`（wrangler.jsonc は自動検出される）
+5. Deploy → 発行された *.workers.dev の URL をスマホで開いて表示確認
+6. 以後 `git push` のたびに自動ビルド & デプロイされる
 
 ## M1: コアロジック（UI なし）
 

@@ -18,7 +18,7 @@ URL で共有。選手（10〜30名）は主にスマホで閲覧する。
 - 状態管理: Zustand + immer。Undo/Redo は immutable スナップショットの履歴スタック
 - テスト: Vitest（`src/core` は必須）
 - 大型 UI フレームワーク・CSS フレームワークの導入禁止（素の CSS or CSS Modules）
-- ホスティング: Cloudflare Pages（静的）。バックエンドは Phase 2 まで無し
+- ホスティング: Cloudflare Workers の静的アセット配信（wrangler.jsonc + Workers Builds による push 自動デプロイ）。バックエンドは Phase 2 まで無し
 
 ## ディレクトリ構成
 
@@ -189,7 +189,7 @@ export type Play = {
 ## 開発コマンド
 
 - `npm run dev` — 開発サーバー
-- `npm run build` — 本番ビルド（Cloudflare Pages は push で自動実行）
+- `npm run build` — 本番ビルド（Cloudflare 側は push で自動実行）
 - `npm test` — Vitest
 - `npm run lint` — ESLint + typecheck
 

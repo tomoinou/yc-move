@@ -3,8 +3,8 @@ import { FIELD } from '../core/field.ts';
 
 export const samplePlay: Play = {
   schemaVersion: 1,
-  id: 'sample-m3',
-  title: 'M3 サンプルプレイ',
+  id: 'sample-m4',
+  title: 'M4 サンプルプレイ',
   meta: { tags: [], updatedAt: '2026-08-28T00:00:00Z' },
   durationMs: 6000,
   markers: [2000, 4000],

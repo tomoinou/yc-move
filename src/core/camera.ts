@@ -12,3 +12,11 @@ export function toScreen(p: Vec2, viewY: number, viewportH: number): Vec2 {
     y: viewY + viewportH - p.y,
   };
 }
+
+// SVG viewBox units → canonical (inverse of toScreen).
+export function fromScreen(svgPt: Vec2, viewY: number, viewportH: number): Vec2 {
+  return {
+    x: svgPt.x - FIELD.marginM,
+    y: viewY + viewportH - svgPt.y,
+  };
+}

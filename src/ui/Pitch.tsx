@@ -1,6 +1,7 @@
 import type { Play, Vec2 } from '../core/types.ts';
+import type { RefObject } from 'react';
 import { FIELD } from '../core/field.ts';
-import { toScreen, VIEW_HEIGHT_M } from '../core/camera.ts';
+import { toScreen, VIEW_HEIGHT_M, fromScreen } from '../core/camera.ts';
 import { entityPositionAt } from '../core/interpolate.ts';
 import { ballStateAt } from '../core/ball.ts';
 
@@ -31,14 +32,49 @@ function tokenFontSize(label: string): number {
   return Math.max(MIN_FONT, Math.min(MAX_FONT, (TOKEN_RADIUS * 1.6) / W));
 }
 
+function pointerToSvgCoords(clientX: number, clientY: number, rect: DOMRect): Vec2 {
+  return {
+    x: (clientX - rect.left) * (44 / rect.width),
+    y: (clientY - rect.top) * (VH / rect.height),
+  };
+}
+
 interface PitchProps {
   play: Play;
   viewY?: number;
   currentTime?: number;
+  // Editor props (all optional — omit for viewer mode)
+  selectedId?: string | null;
+  onionSkinTimes?: number[];
+  dragOverride?: { entityId: string; pos: Vec2 } | null;
+  svgRef?: RefObject<SVGSVGElement | null>;
+  onPitchPointerDown?: (canonical: Vec2) => void;
+  onTokenPointerDown?: (entityId: string) => void;
 }
 
-export function Pitch({ play, viewY = -FIELD.marginM, currentTime = 0 }: PitchProps) {
+export function Pitch({
+  play,
+  viewY = -FIELD.marginM,
+  currentTime = 0,
+  selectedId,
+  onionSkinTimes,
+  dragOverride,
+  svgRef,
+  onPitchPointerDown,
+  onTokenPointerDown,
+}: PitchProps) {
   const ts = (p: Vec2) => toScreen(p, viewY, VH);
+
+  // Hit radius: 44 screen-px converted to SVG meters.
+  // Falls back to 5 on first render (before svgRef is set).
+  const hitR = svgRef?.current
+    ? Math.max(5, 44 * VH / svgRef.current.getBoundingClientRect().height)
+    : 5;
+
+  // Finger-offset in SVG meters (36 screen-px upward) for drag display.
+  const fingerOffsetM = svgRef?.current
+    ? 36 * VH / svgRef.current.getBoundingClientRect().height
+    : 2;
 
   const hLine = (y: number, strokeWidth: number, strokeDasharray?: string) => {
     const p1 = ts({ x: -FIELD.marginM, y });
@@ -73,9 +109,16 @@ export function Pitch({ play, viewY = -FIELD.marginM, currentTime = 0 }: PitchPr
 
   return (
     <svg
+      ref={svgRef}
       viewBox={`0 0 44 ${VH}`}
       width="100%"
       style={{ display: 'block', aspectRatio: `44/${VH}`, touchAction: 'none' }}
+      onPointerDown={(e) => {
+        if (!onPitchPointerDown) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const svgPt = pointerToSvgCoords(e.clientX, e.clientY, rect);
+        onPitchPointerDown(fromScreen(svgPt, viewY, VH));
+      }}
     >
       {/* 暗い緑: マージン含む全背景 */}
       <rect x={0} y={0} width={44} height={VH} fill="#1a5c1a" />
@@ -144,12 +187,48 @@ export function Pitch({ play, viewY = -FIELD.marginM, currentTime = 0 }: PitchPr
         }),
       )}
 
+      {/* オニオンスキン: 前後フェーズのゴースト */}
+      {onionSkinTimes?.flatMap(t =>
+        play.entities.map(entity => {
+          const pos = ts(entityPositionAt(entity, t));
+          return (
+            <circle
+              key={`onion-${entity.id}-${t}`}
+              cx={pos.x} cy={pos.y}
+              r={TOKEN_RADIUS}
+              fill={SIDE_COLOR[entity.side]}
+              opacity={0.25}
+              pointerEvents="none"
+            />
+          );
+        })
+      )}
+
       {/* トークン */}
       {play.entities.map(entity => {
-        const pos = ts(entityPositionAt(entity, currentTime));
+        const rawPos = entityPositionAt(entity, currentTime);
+        const isSelected = selectedId === entity.id;
+
+        // ドラッグ中は指先位置 + 上オフセットで表示
+        const displayCanonical = dragOverride?.entityId === entity.id
+          ? { x: dragOverride.pos.x, y: dragOverride.pos.y + fingerOffsetM }
+          : rawPos;
+        const pos = ts(displayCanonical);
         const fs = tokenFontSize(entity.label);
+
         return (
           <g key={entity.id}>
+            {/* 選択リング */}
+            {isSelected && (
+              <circle
+                cx={pos.x} cy={pos.y}
+                r={TOKEN_RADIUS + 0.35}
+                fill="none"
+                stroke="white"
+                strokeWidth={0.25}
+                pointerEvents="none"
+              />
+            )}
             <circle
               cx={pos.x} cy={pos.y}
               r={TOKEN_RADIUS}
@@ -168,6 +247,18 @@ export function Pitch({ play, viewY = -FIELD.marginM, currentTime = 0 }: PitchPr
             >
               {entity.label}
             </text>
+            {/* ヒット判定用透明サークル (編集モード時のみ) */}
+            {onTokenPointerDown && (
+              <circle
+                cx={pos.x} cy={pos.y}
+                r={hitR}
+                fill="transparent"
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  onTokenPointerDown(entity.id);
+                }}
+              />
+            )}
           </g>
         );
       })}

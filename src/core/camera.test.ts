@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FIELD } from './field.ts';
-import { VIEW_HEIGHT_M, toScreen } from './camera.ts';
+import { VIEW_HEIGHT_M, toScreen, fromScreen } from './camera.ts';
+import type { Vec2 } from './types.ts';
 
 const VH = VIEW_HEIGHT_M;
 
@@ -55,5 +56,45 @@ describe('toScreen', () => {
     const s2 = toScreen(p2, 0, VH);
     const screenDist = Math.sqrt((s2.x - s1.x) ** 2 + (s2.y - s1.y) ** 2);
     expect(screenDist).toBeCloseTo(expectedDist, 10);
+  });
+});
+
+describe('fromScreen', () => {
+  const cases: Vec2[] = [
+    { x: 0, y: 0 },
+    { x: 20, y: 15 },
+    { x: FIELD.widthM, y: FIELD.halfM },
+    { x: -FIELD.marginM, y: -FIELD.marginM },
+  ];
+
+  it('is the inverse of toScreen (roundtrip)', () => {
+    const vy = -FIELD.marginM;
+    for (const p of cases) {
+      const back = fromScreen(toScreen(p, vy, VH), vy, VH);
+      expect(back.x).toBeCloseTo(p.x, 10);
+      expect(back.y).toBeCloseTo(p.y, 10);
+    }
+  });
+
+  it('toScreen is the inverse of fromScreen (roundtrip)', () => {
+    const vy = 10;
+    const svgPoints: Vec2[] = [
+      { x: 2, y: 34 },
+      { x: 22, y: 17 },
+      { x: 42, y: 0 },
+    ];
+    for (const s of svgPoints) {
+      const back = toScreen(fromScreen(s, vy, VH), vy, VH);
+      expect(back.x).toBeCloseTo(s.x, 10);
+      expect(back.y).toBeCloseTo(s.y, 10);
+    }
+  });
+
+  it('scrolled view roundtrip', () => {
+    const vy = 20;
+    const p = { x: 15, y: 25 };
+    const back = fromScreen(toScreen(p, vy, VH), vy, VH);
+    expect(back.x).toBeCloseTo(p.x, 10);
+    expect(back.y).toBeCloseTo(p.y, 10);
   });
 });

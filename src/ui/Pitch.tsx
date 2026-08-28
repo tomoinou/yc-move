@@ -133,7 +133,7 @@ export function Pitch({
       viewBox={`0 0 ${SVG_WIDTH_M} ${viewH}`}
       width="100%"
       height="100%"
-      style={{ display: 'block', touchAction: 'pinch-zoom' }}
+      style={{ display: 'block', touchAction: 'pinch-zoom', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as React.CSSProperties}
       onContextMenu={(e) => e.preventDefault()}
       onPointerDown={(e) => {
         if (!onSvgPointerDown) return;

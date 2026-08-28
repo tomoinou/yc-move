@@ -1,3 +1,6 @@
+import { Pitch } from './ui/Pitch.tsx';
+import { samplePlay } from './ui/samplePlay.ts';
+
 export default function App() {
-  return <h1>yc-move</h1>
+  return <Pitch play={samplePlay} />;
 }

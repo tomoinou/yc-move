@@ -283,22 +283,18 @@ export function Editor() {
   }, [selectedId, play.entities, commit]);
 
   const handlePhaseAdd = useCallback(() => {
-    const times = [0, ...play.markers];
-    let targetTime = currentTime;
-
-    if (times.includes(targetTime) || targetTime <= 0) {
-      targetTime = currentPhaseTime + 1000;
-    }
-
-    if (targetTime <= 0 || targetTime > play.durationMs || times.includes(targetTime)) return;
+    const lastFrameTime = play.markers.length > 0 ? play.markers[play.markers.length - 1] : 0;
+    const targetTime = lastFrameTime + 1000;
+    if (targetTime > play.durationMs) return;
 
     commit(draft => {
       draft.markers = [...draft.markers, targetTime].sort((a, b) => a - b);
     });
     const newIdx = [0, ...play.markers, targetTime].sort((a, b) => a - b).indexOf(targetTime);
     setPhaseIdx(newIdx);
+    setIsEditActive(true);
     seek(targetTime);
-  }, [currentTime, currentPhaseTime, play.markers, play.durationMs, commit, setPhaseIdx, seek]);
+  }, [play.markers, play.durationMs, commit, setPhaseIdx, setIsEditActive, seek]);
 
   const handlePhaseSelect = useCallback((idx: number) => {
     setPhaseIdx(idx);

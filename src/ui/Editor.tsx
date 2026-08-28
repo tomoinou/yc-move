@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { Pitch } from './Pitch.tsx';
 import { Controls } from './Controls.tsx';
 import { PhaseChips } from './PhaseChips.tsx';
@@ -70,23 +70,14 @@ export function Editor() {
     setViewY(play.viewY);
   }, [play.viewY, setViewY]);
 
-  const phaseTimes = useMemo(() => [0, ...play.markers], [play.markers]);
+  const phaseTimes = [0, ...play.markers];
   const currentPhaseTime = phaseTimes[currentPhaseIdx] ?? 0;
 
-  // 再生中のみ: currentTime がフェーズ時刻に一致したら currentPhaseIdx を自動同期
+  // currentTime がフェーズ時刻に一致したら currentPhaseIdx を自動同期
   useEffect(() => {
-    if (!isPlaying) return;
     const idx = phaseTimes.findIndex(t => Math.abs(currentTime - t) <= 50);
     if (idx >= 0 && idx !== currentPhaseIdx) setPhaseIdx(idx);
-  }, [currentTime, isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 停止時のシークバー制約: 選択フレームが前後フレームを超えられないようにする
-  const seekMin = !isPlaying && currentPhaseIdx > 0
-    ? phaseTimes[currentPhaseIdx - 1] + 100
-    : 0;
-  const seekMax = !isPlaying && currentPhaseIdx < phaseTimes.length - 1
-    ? phaseTimes[currentPhaseIdx + 1] - 100
-    : play.durationMs;
+  }, [currentTime]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Onion skin: show adjacent phase positions
   const onionSkinTimes: number[] = [];
@@ -283,28 +274,24 @@ export function Editor() {
     });
   }, [selectedId, play.entities, commit]);
 
-  // 停止時: シークバー release でフレーム時刻を更新
-  const handleSeekEnd = useCallback((t: number) => {
-    if (isPlaying || currentPhaseIdx === 0) return; // F0 は変更不可
-    commit(draft => {
-      draft.markers[currentPhaseIdx - 1] = t;
-      draft.markers.sort((a, b) => a - b);
-    });
-  }, [isPlaying, currentPhaseIdx, commit]);
-
-  // + ボタン: 常に最後のフレームの後（lastTime + 1000ms）に追加
   const handlePhaseAdd = useCallback(() => {
-    const lastTime = phaseTimes[phaseTimes.length - 1] ?? 0;
-    const targetTime = lastTime + 1000;
-    if (targetTime > play.durationMs) return;
+    const times = [0, ...play.markers];
+    let targetTime = currentTime;
+
+    // マーカー時刻 or t=0 の場合は現在フェーズ + 1000ms をデフォルトに使用
+    if (times.includes(targetTime) || targetTime <= 0) {
+      targetTime = currentPhaseTime + 1000;
+    }
+
+    if (targetTime <= 0 || targetTime > play.durationMs || times.includes(targetTime)) return;
 
     commit(draft => {
       draft.markers = [...draft.markers, targetTime].sort((a, b) => a - b);
     });
-    const newIdx = phaseTimes.length; // 新フレームは末尾
+    const newIdx = [0, ...play.markers, targetTime].sort((a, b) => a - b).indexOf(targetTime);
     setPhaseIdx(newIdx);
     seek(targetTime);
-  }, [phaseTimes, play.durationMs, commit, setPhaseIdx, seek]);
+  }, [currentTime, currentPhaseTime, play.markers, play.durationMs, commit, setPhaseIdx, seek]);
 
   const handlePhaseSelect = useCallback((idx: number) => {
     setPhaseIdx(idx);
@@ -384,8 +371,6 @@ export function Editor() {
       <PhaseChips
         markers={play.markers}
         currentTime={currentTime}
-        currentPhaseIdx={currentPhaseIdx}
-        isPlaying={isPlaying}
         onSelect={handlePhaseSelect}
         onAdd={handlePhaseAdd}
         onDelete={handlePhaseDelete}
@@ -394,12 +379,9 @@ export function Editor() {
         currentTime={currentTime}
         durationMs={play.durationMs}
         isPlaying={isPlaying}
-        seekMin={seekMin}
-        seekMax={seekMax}
         onPlay={playback}
         onPause={pause}
         onSeek={seek}
-        onSeekEnd={handleSeekEnd}
       />
       <EntityPanel
         play={play}

@@ -2,17 +2,13 @@ interface ControlsProps {
   currentTime: number;
   durationMs: number;
   isPlaying: boolean;
-  seekMin?: number;
-  seekMax?: number;
   onPlay: () => void;
   onPause: () => void;
   onSeek: (t: number) => void;
-  onSeekEnd?: (t: number) => void;
 }
 
 export function Controls({
-  currentTime, durationMs, isPlaying, seekMin, seekMax,
-  onPlay, onPause, onSeek, onSeekEnd,
+  currentTime, durationMs, isPlaying, onPlay, onPause, onSeek,
 }: ControlsProps) {
   return (
     <div style={{
@@ -43,12 +39,11 @@ export function Controls({
         </button>
         <input
           type="range"
-          min={seekMin ?? 0}
-          max={seekMax ?? durationMs}
-          step={100}
+          min={0}
+          max={durationMs}
+          step={16}
           value={currentTime}
           onInput={(e) => onSeek(e.currentTarget.valueAsNumber)}
-          onPointerUp={(e) => onSeekEnd?.(e.currentTarget.valueAsNumber)}
           onChange={() => {}}
           style={{ flex: 1, accentColor: '#E8272A' }}
         />

@@ -1,15 +1,17 @@
 import { useRef, useEffect } from 'react';
 
+const AT_PHASE_TOLERANCE_MS = 50;
+
 interface PhaseChipsProps {
   markers: number[];
-  currentPhaseIdx: number;
+  currentTime: number;
   onSelect: (idx: number) => void;
   onAdd: () => void;
   onDelete: (idx: number) => void;
 }
 
 export function PhaseChips({
-  markers, currentPhaseIdx, onSelect, onAdd, onDelete,
+  markers, currentTime, onSelect, onAdd, onDelete,
 }: PhaseChipsProps) {
   const phaseTimes = [0, ...markers];
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -41,42 +43,45 @@ export function PhaseChips({
           scrollbarWidth: 'none',
         }}
       >
-        {phaseTimes.map((_t, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-            <button
-              onClick={() => onSelect(i)}
-              style={{
-                background: currentPhaseIdx === i ? '#E8272A' : 'rgba(255,255,255,0.15)',
-                color: 'white',
-                border: 'none',
-                borderRadius: i === 0 ? 4 : '4px 0 0 4px',
-                padding: '4px 10px',
-                fontSize: 13,
-                cursor: 'pointer',
-              }}
-            >
-              {'F'}{i}
-            </button>
-            {i > 0 && (
+        {phaseTimes.map((t, i) => {
+          const isActive = Math.abs(currentTime - t) <= AT_PHASE_TOLERANCE_MS;
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
               <button
-                onClick={(e) => { e.stopPropagation(); onDelete(i); }}
+                onClick={() => onSelect(i)}
                 style={{
-                  background: currentPhaseIdx === i ? '#E8272A' : 'rgba(255,255,255,0.15)',
-                  color: 'rgba(255,255,255,0.7)',
+                  background: isActive ? '#E8272A' : 'rgba(255,255,255,0.15)',
+                  color: 'white',
                   border: 'none',
-                  borderLeft: '1px solid rgba(0,0,0,0.3)',
-                  borderRadius: '0 4px 4px 0',
-                  padding: '4px 6px',
-                  fontSize: 11,
+                  borderRadius: i === 0 ? 4 : '4px 0 0 4px',
+                  padding: '4px 10px',
+                  fontSize: 13,
                   cursor: 'pointer',
-                  lineHeight: 1,
                 }}
               >
-                ×
+                {'F'}{i}
               </button>
-            )}
-          </div>
-        ))}
+              {i > 0 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(i); }}
+                  style={{
+                    background: isActive ? '#E8272A' : 'rgba(255,255,255,0.15)',
+                    color: 'rgba(255,255,255,0.7)',
+                    border: 'none',
+                    borderLeft: '1px solid rgba(0,0,0,0.3)',
+                    borderRadius: '0 4px 4px 0',
+                    padding: '4px 6px',
+                    fontSize: 11,
+                    cursor: 'pointer',
+                    lineHeight: 1,
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* + ボタン: 右端固定 */}

@@ -73,6 +73,12 @@ export function Editor() {
   const phaseTimes = [0, ...play.markers];
   const currentPhaseTime = phaseTimes[currentPhaseIdx] ?? 0;
 
+  // currentTime がフェーズ時刻に一致したら currentPhaseIdx を自動同期
+  useEffect(() => {
+    const idx = phaseTimes.findIndex(t => Math.abs(currentTime - t) <= 50);
+    if (idx >= 0 && idx !== currentPhaseIdx) setPhaseIdx(idx);
+  }, [currentTime]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Onion skin: show adjacent phase positions
   const onionSkinTimes: number[] = [];
   if (currentPhaseIdx > 0) onionSkinTimes.push(phaseTimes[currentPhaseIdx - 1]);
@@ -364,7 +370,7 @@ export function Editor() {
       </div>
       <PhaseChips
         markers={play.markers}
-        currentPhaseIdx={currentPhaseIdx}
+        currentTime={currentTime}
         onSelect={handlePhaseSelect}
         onAdd={handlePhaseAdd}
         onDelete={handlePhaseDelete}

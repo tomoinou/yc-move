@@ -16,6 +16,7 @@ interface EntityPanelProps {
   onRedo: () => void;
   onToggleScroll: () => void;
   onAssignBall: () => void;
+  onShare: () => void;
 }
 
 const btn = (active: boolean, color?: string) => ({
@@ -32,7 +33,7 @@ const btn = (active: boolean, color?: string) => ({
 export function EntityPanel({
   play, selectedId, canUndo, canRedo, scrollMode, addMode, currentFrameHolderId,
   onAddAttack, onAddDefence, onEditLabel, onDeleteEntity, onUndo, onRedo,
-  onToggleScroll, onAssignBall,
+  onToggleScroll, onAssignBall, onShare,
 }: EntityPanelProps) {
   const selected = play.entities.find(e => e.id === selectedId);
   const ballActive = selected !== undefined && currentFrameHolderId === selected.id;
@@ -108,6 +109,7 @@ export function EntityPanel({
 
       <button style={btn(canUndo)} onClick={onUndo} disabled={!canUndo}>↩</button>
       <button style={btn(canRedo)} onClick={onRedo} disabled={!canRedo}>↪</button>
+      <button style={btn(true)} onClick={onShare} title="共有URLをコピー">⬆</button>
     </div>
   );
 }

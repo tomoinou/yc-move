@@ -11,6 +11,7 @@ import { FIELD } from '../core/field.ts';
 import { VIEW_HEIGHT_M, SVG_WIDTH_M, fromScreen } from '../core/camera.ts';
 import { ballStateAt } from '../core/ball.ts';
 import { entityPositionAt } from '../core/interpolate.ts';
+import { encodePlay } from '../core/share.ts';
 import type { Vec2, Entity } from '../core/types.ts';
 
 const AT_PHASE_TOLERANCE_MS = 50;
@@ -366,6 +367,17 @@ export function Editor() {
     }
   }, [scrollMode, setScrollMode, setAddMode]);
 
+  const handleShare = useCallback(async () => {
+    const encoded = await encodePlay(play);
+    const url = `${location.origin}${location.pathname}#p=${encoded}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      window.alert('共有URLをコピーしました');
+    } catch {
+      window.prompt('以下のURLをコピーしてください', url);
+    }
+  }, [play]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
       <div style={{ flex: '1 1 0', minHeight: 0, position: 'relative' }}>
@@ -419,6 +431,7 @@ export function Editor() {
         onRedo={redo}
         onToggleScroll={handleToggleScroll}
         onAssignBall={handleAssignBall}
+        onShare={handleShare}
       />
     </div>
   );

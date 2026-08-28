@@ -314,7 +314,7 @@ export function Editor() {
         <Pitch
           play={play}
           viewY={editorViewY}
-          currentTime={currentPhaseTime}
+          currentTime={currentTime}
           selectedId={selectedId}
           onionSkinTimes={onionSkinTimes}
           dragOverride={dragOverride}

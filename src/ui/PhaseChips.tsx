@@ -41,7 +41,7 @@ export function PhaseChips({
           scrollbarWidth: 'none',
         }}
       >
-        {phaseTimes.map((_, i) => (
+        {phaseTimes.map((t, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
             <button
               onClick={() => onSelect(i)}
@@ -56,6 +56,9 @@ export function PhaseChips({
               }}
             >
               {'F'}{i}
+              <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 4 }}>
+                {Math.round(t / 1000)}
+              </span>
             </button>
             {i > 0 && (
               <button

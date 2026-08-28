@@ -37,13 +37,17 @@ function setTrackKey(entity: Entity, t: number, p: Vec2): void {
 }
 
 function nextAttackLabel(entities: Entity[]): string {
-  const n = entities.filter(e => e.side === 'attack').length;
-  return `A${n + 1}`;
+  const max = entities
+    .filter(e => e.side === 'attack')
+    .reduce((m, e) => { const n = e.label.match(/^A(\d+)$/); return n ? Math.max(m, Number(n[1])) : m; }, 0);
+  return `A${max + 1}`;
 }
 
 function nextDefenceLabel(entities: Entity[]): string {
-  const n = entities.filter(e => e.side === 'defence').length;
-  return `D${n + 1}`;
+  const max = entities
+    .filter(e => e.side === 'defence')
+    .reduce((m, e) => { const n = e.label.match(/^D(\d+)$/); return n ? Math.max(m, Number(n[1])) : m; }, 0);
+  return `D${max + 1}`;
 }
 
 const MAX_VIEW_Y = FIELD.lengthM - VH + FIELD.marginM;

@@ -108,8 +108,8 @@ export function EntityPanel({
         ) : null}
       </div>
 
-      <button style={btn(canUndo)} onClick={onUndo} disabled={!canUndo}>←</button>
-      <button style={btn(canRedo)} onClick={onRedo} disabled={!canRedo}>→</button>
+      <button style={{ ...btn(canUndo), padding: '6px 12px' }} onClick={onUndo} disabled={!canUndo}>←</button>
+      <button style={{ ...btn(canRedo), padding: '6px 12px' }} onClick={onRedo} disabled={!canRedo}>→</button>
       <button style={{ ...btn(true), marginLeft: 6 }} onClick={onShare} title="共有URLをコピー">🔗</button>
     </div>
   );

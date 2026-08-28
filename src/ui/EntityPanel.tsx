@@ -109,7 +109,7 @@ export function EntityPanel({
 
       <button style={btn(canUndo)} onClick={onUndo} disabled={!canUndo}>↩</button>
       <button style={btn(canRedo)} onClick={onRedo} disabled={!canRedo}>↪</button>
-      <button style={btn(true)} onClick={onShare} title="共有URLをコピー">⬆</button>
+      <button style={btn(true)} onClick={onShare} title="共有URLをコピー">🔗</button>
     </div>
   );
 }

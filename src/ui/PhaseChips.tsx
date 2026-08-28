@@ -70,7 +70,7 @@ export function PhaseChips({
                   onClick={(e) => { e.stopPropagation(); onDelete(i); }}
                   style={{
                     background: '#555500',
-                    color: 'rgba(255,255,255,0.7)',
+                    color: 'rgba(255,100,100,0.9)',
                     border: 'none',
                     borderLeft: '1px solid rgba(0,0,0,0.3)',
                     borderRadius: '0 4px 4px 0',

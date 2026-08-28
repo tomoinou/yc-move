@@ -41,11 +41,18 @@ export function Viewer({ play }: ViewerProps) {
   }, []);
 
   const scrollRef = useRef<{ startClientY: number; startViewY: number } | null>(null);
+  const activePointerIds = useRef<Set<number>>(new Set());
   const viewYRef = useRef(viewY);
   useEffect(() => { viewYRef.current = viewY; }, [viewY]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    scrollRef.current = { startClientY: e.clientY, startViewY: viewYRef.current };
+    activePointerIds.current.add(e.pointerId);
+    if (activePointerIds.current.size === 1) {
+      scrollRef.current = { startClientY: e.clientY, startViewY: viewYRef.current };
+    } else {
+      // 2本目の指が来たらスクロールをキャンセルしてブラウザのピンチズームに委ねる
+      scrollRef.current = null;
+    }
   }, []);
 
   useEffect(() => {
@@ -60,19 +67,24 @@ export function Viewer({ play }: ViewerProps) {
       const maxViewY = Math.max(minViewY, FIELD.lengthM + FIELD.inGoalM + FIELD.marginM - vh);
       setViewY(clamp(scrollRef.current.startViewY + deltaM, minViewY, maxViewY));
     };
-    const handleUp = () => { scrollRef.current = null; };
+    const handleUp = (e: PointerEvent) => {
+      activePointerIds.current.delete(e.pointerId);
+      if (activePointerIds.current.size === 0) scrollRef.current = null;
+    };
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('pointerup', handleUp);
+    window.addEventListener('pointercancel', handleUp);
     return () => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointercancel', handleUp);
     };
   }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
       <div
-        style={{ flex: '1 1 0', minHeight: 0, position: 'relative', touchAction: 'none' }}
+        style={{ flex: '1 1 0', minHeight: 0, position: 'relative', touchAction: 'pinch-zoom' }}
         onPointerDown={handlePointerDown}
       >
         <Pitch

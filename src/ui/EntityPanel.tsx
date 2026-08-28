@@ -10,6 +10,7 @@ interface EntityPanelProps {
   onAddAttack: () => void;
   onAddDefence: () => void;
   onEditLabel: () => void;
+  onDeleteEntity: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onToggleScroll: () => void;
@@ -29,7 +30,7 @@ const btn = (active: boolean, color?: string) => ({
 
 export function EntityPanel({
   play, selectedId, canUndo, canRedo, scrollMode, passMode,
-  onAddAttack, onAddDefence, onEditLabel, onUndo, onRedo,
+  onAddAttack, onAddDefence, onEditLabel, onDeleteEntity, onUndo, onRedo,
   onToggleScroll, onTogglePass,
 }: EntityPanelProps) {
   const selected = play.entities.find(e => e.id === selectedId);
@@ -48,22 +49,39 @@ export function EntityPanel({
       <button style={btn(true, scrollMode ? '#555500' : undefined)} onClick={onToggleScroll}>↕</button>
       <button style={btn(true, passMode ? '#556600' : undefined)} onClick={onTogglePass}>→</button>
 
-      <div style={{ flex: 1, textAlign: 'center', fontSize: 13 }}>
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, fontSize: 13 }}>
         {selected ? (
-          <button
-            onClick={onEditLabel}
-            style={{
-              background: 'none',
-              border: '1px solid rgba(255,255,255,0.35)',
-              borderRadius: 4,
-              color: 'white',
-              padding: '3px 10px',
-              cursor: 'pointer',
-              fontSize: 13,
-            }}
-          >
-            {selected.label}
-          </button>
+          <>
+            <button
+              onClick={onEditLabel}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.35)',
+                borderRadius: '4px 0 0 4px',
+                color: 'white',
+                padding: '3px 10px',
+                cursor: 'pointer',
+                fontSize: 13,
+              }}
+            >
+              {selected.label}
+            </button>
+            <button
+              onClick={onDeleteEntity}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.35)',
+                borderLeft: 'none',
+                borderRadius: '0 4px 4px 0',
+                color: 'rgba(255,100,100,0.9)',
+                padding: '3px 8px',
+                cursor: 'pointer',
+                fontSize: 13,
+              }}
+            >
+              ×
+            </button>
+          </>
         ) : (
           <span style={{ color: 'rgba(255,255,255,0.4)' }}>未選択</span>
         )}

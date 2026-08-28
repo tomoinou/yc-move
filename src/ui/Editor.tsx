@@ -294,6 +294,31 @@ export function Editor() {
     seek(t);
   }, [play.markers, setPhaseIdx, seek]);
 
+  const handlePhaseDelete = useCallback((idx: number) => {
+    // idx は phaseTimes のインデックス（0 は削除不可）
+    if (idx <= 0) return;
+    commit(draft => {
+      draft.markers.splice(idx - 1, 1);
+    });
+    // 削除後に currentPhaseIdx が範囲外になる場合は直前に戻す
+    if (currentPhaseIdx >= idx) setPhaseIdx(Math.max(0, currentPhaseIdx - 1));
+  }, [commit, setPhaseIdx, currentPhaseIdx]);
+
+  const handleEntityDelete = useCallback(() => {
+    if (!selectedId) return;
+    commit(draft => {
+      draft.entities = draft.entities.filter(e => e.id !== selectedId);
+      // ball の参照も整理
+      if (draft.ball.initialHolder === selectedId) {
+        draft.ball.initialHolder = draft.entities[0]?.id ?? '';
+      }
+      draft.ball.events = draft.ball.events.filter(
+        ev => ev.from !== selectedId && ev.to !== selectedId,
+      );
+    });
+    select(null);
+  }, [selectedId, commit, select]);
+
   const handleToggleScroll = useCallback(() => {
     setScrollMode(!scrollMode);
     if (!scrollMode) {
@@ -343,6 +368,7 @@ export function Editor() {
         currentPhaseIdx={currentPhaseIdx}
         onSelect={handlePhaseSelect}
         onAdd={handlePhaseAdd}
+        onDelete={handlePhaseDelete}
       />
       <Controls
         currentTime={currentTime}
@@ -362,6 +388,7 @@ export function Editor() {
         onAddAttack={() => handleAddEntity('attack')}
         onAddDefence={() => handleAddEntity('defence')}
         onEditLabel={handleEditLabel}
+        onDeleteEntity={handleEntityDelete}
         onUndo={undo}
         onRedo={redo}
         onToggleScroll={handleToggleScroll}

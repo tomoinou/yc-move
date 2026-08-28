@@ -24,7 +24,7 @@ const btn = (active: boolean, color?: string) => ({
   color: active ? 'white' : 'rgba(255,255,255,0.3)',
   border: 'none',
   borderRadius: 4,
-  padding: '6px 12px',
+  padding: '6px 8px',
   fontSize: 14,
   cursor: active ? 'pointer' : 'default',
   flexShrink: 0,
@@ -58,7 +58,7 @@ export function EntityPanel({
               onClick={onAssignBall}
               style={{
                 ...btn(ballActive, '#BB6600'),
-                padding: '3px 8px',
+                padding: '3px 6px',
                 display: 'flex',
                 alignItems: 'center',
               }}

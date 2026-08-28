@@ -52,6 +52,16 @@ export function Editor() {
   const [viewH, setViewH] = useState(VIEW_HEIGHT_M);
   const initialCenteredRef = useRef(false);
 
+  // play が変わるたびにバックグラウンドで共有 URL を先読みしておく
+  const [shareUrl, setShareUrl] = useState('');
+  useEffect(() => {
+    let active = true;
+    encodePlay(play).then(encoded => {
+      if (active) setShareUrl(`${location.origin}${location.pathname}#p=${encoded}`);
+    });
+    return () => { active = false; };
+  }, [play]);
+
   useEffect(() => {
     const el = svgRef.current;
     if (!el) return;
@@ -367,20 +377,13 @@ export function Editor() {
     }
   }, [scrollMode, setScrollMode, setAddMode]);
 
-  const handleShare = useCallback(async () => {
-    const urlPromise = encodePlay(play).then(encoded =>
-      new Blob([`${location.origin}${location.pathname}#p=${encoded}`], { type: 'text/plain' })
-    );
-    try {
-      // ClipboardItem に Promise を渡すことで、ユーザー操作の瞬間に書き込み要求を登録し
-      // 非同期エンコードの完了を待ってからクリップボードに書き込む
-      await navigator.clipboard.write([new ClipboardItem({ 'text/plain': urlPromise })]);
-      window.alert('共有URLをコピーしました');
-    } catch {
-      const url = `${location.origin}${location.pathname}#p=${await encodePlay(play)}`;
-      window.prompt('以下のURLをコピーしてください', url);
-    }
-  }, [play]);
+  const handleShare = useCallback(() => {
+    if (!shareUrl) return;
+    // クリック時に非同期処理を挟まず writeText を呼ぶ → ユーザーアクティベーションが有効なまま
+    navigator.clipboard.writeText(shareUrl)
+      .then(() => window.alert('共有URLをコピーしました'))
+      .catch(() => window.prompt('以下のURLをコピーしてください', shareUrl));
+  }, [shareUrl]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>

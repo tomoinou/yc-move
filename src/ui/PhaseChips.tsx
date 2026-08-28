@@ -5,13 +5,15 @@ const AT_PHASE_TOLERANCE_MS = 50;
 interface PhaseChipsProps {
   markers: number[];
   currentTime: number;
+  currentPhaseIdx: number;
+  isPlaying: boolean;
   onSelect: (idx: number) => void;
   onAdd: () => void;
   onDelete: (idx: number) => void;
 }
 
 export function PhaseChips({
-  markers, currentTime, onSelect, onAdd, onDelete,
+  markers, currentTime, currentPhaseIdx, isPlaying, onSelect, onAdd, onDelete,
 }: PhaseChipsProps) {
   const phaseTimes = [0, ...markers];
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -44,7 +46,10 @@ export function PhaseChips({
         }}
       >
         {phaseTimes.map((t, i) => {
-          const isActive = Math.abs(currentTime - t) <= AT_PHASE_TOLERANCE_MS;
+          // 再生中: 時刻一致で点灯 / 停止中: 選択インデックスで点灯
+          const isActive = isPlaying
+            ? Math.abs(currentTime - t) <= AT_PHASE_TOLERANCE_MS
+            : i === currentPhaseIdx;
           return (
             <div key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
               <button

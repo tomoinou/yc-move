@@ -49,7 +49,7 @@ export function EntityPanel({
     }}>
       <button style={btn(true, addMode === 'attack' ? '#E8272A' : 'rgba(232,39,42,0.4)')} onClick={onAddAttack}>+A</button>
       <button style={btn(true, addMode === 'defence' ? '#1755B8' : 'rgba(23,85,184,0.4)')} onClick={onAddDefence}>+D</button>
-      <button style={btn(true, scrollMode ? '#555500' : undefined)} onClick={onToggleScroll}>↕</button>
+      <button style={btn(true, scrollMode ? '#555500' : undefined)} onClick={onToggleScroll}>▲▼</button>
 
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, fontSize: 13 }}>
         {selected ? (

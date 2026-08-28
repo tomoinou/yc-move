@@ -215,7 +215,7 @@ export function Pitch({
               key={`tr-${entity.id}-${i}`}
               d={d}
               fill="none"
-              stroke="rgba(255,255,255,0.3)"
+              stroke={entity.side === 'attack' ? 'rgba(232,39,42,0.5)' : 'rgba(23,85,184,0.5)'}
               strokeWidth={0.12}
             />
           );

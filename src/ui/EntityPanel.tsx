@@ -77,8 +77,8 @@ export function EntityPanel({
             <button
               onClick={onEditLabel}
               style={{
-                background: 'none',
-                border: '1px solid rgba(255,255,255,0.35)',
+                background: '#555500',
+                border: 'none',
                 borderRadius: '4px 0 0 4px',
                 color: 'white',
                 padding: '3px 10px',
@@ -91,14 +91,15 @@ export function EntityPanel({
             <button
               onClick={onDeleteEntity}
               style={{
-                background: 'none',
-                border: '1px solid rgba(255,255,255,0.35)',
-                borderLeft: 'none',
+                background: '#555500',
+                border: 'none',
+                borderLeft: '1px solid rgba(0,0,0,0.3)',
                 borderRadius: '0 4px 4px 0',
                 color: 'rgba(255,100,100,0.9)',
-                padding: '3px 8px',
+                padding: '3px 6px',
                 cursor: 'pointer',
-                fontSize: 13,
+                fontSize: 11,
+                lineHeight: 1,
               }}
             >
               ×

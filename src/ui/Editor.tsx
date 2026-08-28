@@ -36,19 +36,6 @@ function setTrackKey(entity: Entity, t: number, p: Vec2): void {
   }
 }
 
-function nextAttackLabel(entities: Entity[]): string {
-  const max = entities
-    .filter(e => e.side === 'attack')
-    .reduce((m, e) => { const n = e.label.match(/^A(\d+)$/); return n ? Math.max(m, Number(n[1])) : m; }, 0);
-  return `A${max + 1}`;
-}
-
-function nextDefenceLabel(entities: Entity[]): string {
-  const max = entities
-    .filter(e => e.side === 'defence')
-    .reduce((m, e) => { const n = e.label.match(/^D(\d+)$/); return n ? Math.max(m, Number(n[1])) : m; }, 0);
-  return `D${max + 1}`;
-}
 
 const MAX_VIEW_Y = FIELD.lengthM - VH + FIELD.marginM;
 
@@ -229,9 +216,11 @@ export function Editor() {
     commit(draft => {
       const id = `${side[0]}${Date.now()}`;
       newId = id;
-      const label = side === 'attack'
-        ? nextAttackLabel(draft.entities)
-        : nextDefenceLabel(draft.entities);
+      const isAttack = side === 'attack';
+      const idx = isAttack ? draft.nextAttackIdx : draft.nextDefenceIdx;
+      const label = `${isAttack ? 'A' : 'D'}${idx}`;
+      if (isAttack) draft.nextAttackIdx = idx + 1;
+      else draft.nextDefenceIdx = idx + 1;
       const defaultY = side === 'attack' ? 5 : 10;
       draft.entities.push({
         id,

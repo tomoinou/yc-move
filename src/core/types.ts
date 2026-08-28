@@ -46,5 +46,7 @@ export type Play = {
   entities: Entity[];
   ball: BallTrack;
   annotations: Annotation[];
+  nextAttackIdx: number;   // +A を押すたびにインクリメント
+  nextDefenceIdx: number;  // +D を押すたびにインクリメント
 };
 

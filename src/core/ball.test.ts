@@ -18,6 +18,8 @@ function makePlay(overrides: Partial<Play> = {}): Play {
     entities: [makeEntity('p1', 5, 10), makeEntity('p2', 5, 5)],
     ball: { initialHolder: 'p1', events: [] },
     annotations: [],
+    nextAttackIdx: 1,
+    nextDefenceIdx: 1,
     ...overrides,
   };
 }
@@ -66,6 +68,8 @@ describe('ballStateAt', () => {
         events: [{ t: 0, kind: 'pass', from: 'p1', to: 'p2', flightMs: 1000 }],
       },
       annotations: [],
+      nextAttackIdx: 1,
+      nextDefenceIdx: 1,
     };
     // At t=0: release. At t=500: midpoint. At t=1000: receive.
     const mid = ballStateAt(play, 500);
@@ -111,6 +115,8 @@ describe('slowForwardWarnings', () => {
         events: [{ t: 1000, kind: 'pass', from: 'p1', to: 'p2', flightMs: 200 }],
       },
       annotations: [],
+      nextAttackIdx: 1,
+      nextDefenceIdx: 1,
     };
     const warnings = slowForwardWarnings(play);
     expect(warnings.length).toBe(1);
@@ -135,6 +141,8 @@ describe('slowForwardWarnings', () => {
         events: [{ t: 1000, kind: 'pass', from: 'p1', to: 'p2', flightMs: 200 }],
       },
       annotations: [],
+      nextAttackIdx: 1,
+      nextDefenceIdx: 1,
     };
     expect(slowForwardWarnings(play).length).toBe(0);
   });

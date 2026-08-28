@@ -18,4 +18,6 @@ export const samplePlay: Play = {
     events: [],
   },
   annotations: [],
+  nextAttackIdx: 2,
+  nextDefenceIdx: 2,
 };

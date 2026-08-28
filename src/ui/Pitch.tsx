@@ -5,10 +5,9 @@ import { toScreen, VIEW_HEIGHT_M, fromScreen } from '../core/camera.ts';
 import { entityPositionAt } from '../core/interpolate.ts';
 import { ballStateAt } from '../core/ball.ts';
 
-const VH = VIEW_HEIGHT_M;
-const TOKEN_RADIUS = 1.5;
-const MAX_FONT = 1.2;
-const MIN_FONT = 0.6;
+const TOKEN_RADIUS = 1.2;
+const MAX_FONT = 1.0;
+const MIN_FONT = 0.5;
 const TRACK_SAMPLES = 20;
 
 const SIDE_COLOR: Record<'attack' | 'defence', string> = {
@@ -33,22 +32,23 @@ function tokenFontSize(label: string): number {
 }
 
 function pointerToSvgCoords(clientX: number, clientY: number, rect: DOMRect): Vec2 {
+  const scale = 44 / rect.width;
   return {
-    x: (clientX - rect.left) * (44 / rect.width),
-    y: (clientY - rect.top) * (VH / rect.height),
+    x: (clientX - rect.left) * scale,
+    y: (clientY - rect.top) * scale,
   };
 }
 
 interface PitchProps {
   play: Play;
   viewY?: number;
+  viewH?: number;
   currentTime?: number;
   // Editor props (all optional — omit for viewer mode)
   selectedId?: string | null;
   onionSkinTimes?: number[];
   dragOverride?: { entityId: string; pos: Vec2 } | null;
   scrollMode?: boolean;
-  passArrow?: { from: Vec2; to: Vec2 } | null;
   svgRef?: RefObject<SVGSVGElement | null>;
   onSvgPointerDown?: (canonical: Vec2, clientY: number) => void;
   onTokenPointerDown?: (entityId: string) => void;
@@ -56,28 +56,24 @@ interface PitchProps {
 
 export function Pitch({
   play,
-  viewY = -FIELD.marginM,
+  viewY = FIELD.halfM - VIEW_HEIGHT_M / 2,
+  viewH = VIEW_HEIGHT_M,
   currentTime = 0,
   selectedId,
   onionSkinTimes,
   dragOverride,
   scrollMode = false,
-  passArrow,
   svgRef,
   onSvgPointerDown,
   onTokenPointerDown,
 }: PitchProps) {
-  const ts = (p: Vec2) => toScreen(p, viewY, VH);
+  const ts = (p: Vec2) => toScreen(p, viewY, viewH);
 
-  // Hit radius: 44 screen-px converted to SVG meters.
-  const hitR = svgRef?.current
-    ? Math.max(5, 44 * VH / svgRef.current.getBoundingClientRect().height)
-    : 5;
-
-  // Finger-offset in SVG meters (36 screen-px upward) for drag display.
-  const fingerOffsetM = svgRef?.current
-    ? 36 * VH / svgRef.current.getBoundingClientRect().height
-    : 2;
+  // Hit radius / finger-offset: 44 or 36 screen-px → SVG meters via 44/width scale.
+  const svgRect = svgRef?.current?.getBoundingClientRect();
+  const svgScale = svgRect && svgRect.width > 0 ? 44 / svgRect.width : null;
+  const hitR = svgScale ? Math.max(5, 44 * svgScale) : 5;
+  const fingerOffsetM = svgScale ? 36 * svgScale : 2;
 
   const boundaryStroke = scrollMode ? 'rgba(255,255,100,0.8)' : 'white';
 
@@ -96,8 +92,8 @@ export function Pitch({
   };
 
   const vLine = (x: number, strokeWidth: number, stroke?: string) => {
-    const p1 = ts({ x, y: -FIELD.marginM });
-    const p2 = ts({ x, y: FIELD.lengthM + FIELD.marginM });
+    const p1 = ts({ x, y: -FIELD.inGoalM });
+    const p2 = ts({ x, y: FIELD.lengthM + FIELD.inGoalM });
     return (
       <line
         key={`v-${x}`}
@@ -109,30 +105,39 @@ export function Pitch({
   };
 
   const playAreaOrigin = ts({ x: 0, y: FIELD.lengthM });
+  const inGoalBottomOrigin = ts({ x: 0, y: 0 });
+  const inGoalTopOrigin = ts({ x: 0, y: FIELD.lengthM + FIELD.inGoalM });
   const bs = ballStateAt(play, currentTime);
-  const bp = ts(bs.pos);
+  const ballCarrierPos = bs.holderId !== null
+    ? (dragOverride?.entityId === bs.holderId
+        ? { x: dragOverride.pos.x, y: dragOverride.pos.y + fingerOffsetM }
+        : bs.pos)
+    : null;
+  const ballCanonical = ballCarrierPos !== null
+    ? { x: ballCarrierPos.x, y: ballCarrierPos.y + TOKEN_RADIUS }
+    : bs.pos;
+  const bp = ts(ballCanonical);
 
   return (
     <svg
       ref={svgRef}
-      viewBox={`0 0 44 ${VH}`}
+      viewBox={`0 0 44 ${viewH}`}
       width="100%"
-      style={{ display: 'block', aspectRatio: `44/${VH}`, touchAction: 'none' }}
+      height="100%"
+      style={{ display: 'block', touchAction: 'none' }}
       onPointerDown={(e) => {
         if (!onSvgPointerDown) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const svgPt = pointerToSvgCoords(e.clientX, e.clientY, rect);
-        onSvgPointerDown(fromScreen(svgPt, viewY, VH), e.clientY);
+        onSvgPointerDown(fromScreen(svgPt, viewY, viewH), e.clientY);
       }}
     >
-      <defs>
-        <marker id="pass-arrow" markerWidth="4" markerHeight="4" refX="3" refY="2" orient="auto">
-          <path d="M0,0 L4,2 L0,4 z" fill="rgba(255,220,0,0.9)" />
-        </marker>
-      </defs>
+      {/* 茶色（ハードコート）: タッチライン外マージン（全背景） */}
+      <rect x={0} y={0} width={44} height={viewH} fill="#7B3A1E" />
 
-      {/* 暗い緑: マージン含む全背景 */}
-      <rect x={0} y={0} width={44} height={VH} fill="#1a5c1a" />
+      {/* 暗い緑: インゴールエリア */}
+      <rect x={inGoalBottomOrigin.x} y={inGoalBottomOrigin.y} width={FIELD.widthM} height={FIELD.inGoalM} fill="#1a5c1a" />
+      <rect x={inGoalTopOrigin.x} y={inGoalTopOrigin.y} width={FIELD.widthM} height={FIELD.inGoalM} fill="#1a5c1a" />
 
       {/* 明るい緑: プレーエリア */}
       <rect
@@ -143,12 +148,16 @@ export function Pitch({
         fill="#2d8a2d"
       />
 
+      {/* 太実線: デッドボールライン */}
+      {hLine(-FIELD.inGoalM, 0.3, undefined, boundaryStroke)}
+      {hLine(FIELD.lengthM + FIELD.inGoalM, 0.3, undefined, boundaryStroke)}
+
       {/* 太実線: トライライン・ハーフウェイ */}
       {hLine(0, 0.3, undefined, boundaryStroke)}
       {hLine(FIELD.lengthM, 0.3, undefined, boundaryStroke)}
       {hLine(FIELD.halfM, 0.3)}
 
-      {/* 太実線: タッチライン */}
+      {/* 太実線: タッチライン（デッドボールラインまで延長） */}
       {vLine(0, 0.3, boundaryStroke)}
       {vLine(FIELD.widthM, 0.3, boundaryStroke)}
 
@@ -254,6 +263,7 @@ export function Pitch({
               fill="white"
               fontSize={fs}
               fontWeight="bold"
+              fontFamily="sans-serif"
               pointerEvents="none"
             >
               {entity.label}
@@ -274,18 +284,32 @@ export function Pitch({
         );
       })}
 
-      {/* ボール */}
-      <circle
-        cx={bp.x} cy={bp.y}
-        r={0.6}
-        fill={bs.isForward ? '#FF8C00' : '#F5F5DC'}
-        stroke="rgba(0,0,0,0.6)"
-        strokeWidth={0.08}
-      />
+      {/* ボール（ラグビーボール形状） */}
+      <g pointerEvents="none" transform={`rotate(45,${bp.x},${bp.y})`}>
+        <ellipse
+          cx={bp.x} cy={bp.y}
+          rx={0.38} ry={0.62}
+          fill={bs.isForward ? '#FF8C00' : '#FFE600'}
+          stroke="rgba(0,0,0,0.7)"
+          strokeWidth={0.06}
+        />
+        {/* 縫い目ライン */}
+        <line x1={bp.x} y1={bp.y - 0.52} x2={bp.x} y2={bp.y + 0.52}
+          stroke="rgba(255,255,255,0.7)" strokeWidth={0.05} />
+        <path
+          d={`M ${bp.x - 0.2} ${bp.y - 0.12} Q ${bp.x} ${bp.y - 0.28} ${bp.x + 0.2} ${bp.y - 0.12}`}
+          fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth={0.05}
+        />
+        <path
+          d={`M ${bp.x - 0.2} ${bp.y + 0.12} Q ${bp.x} ${bp.y + 0.28} ${bp.x + 0.2} ${bp.y + 0.12}`}
+          fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth={0.05}
+        />
+      </g>
       {bs.isForward && (
         <text
           x={bp.x} y={bp.y - 1.2}
           fontSize={0.8}
+          fontFamily="sans-serif"
           fill="#FF8C00"
           textAnchor="middle"
           pointerEvents="none"
@@ -304,6 +328,7 @@ export function Pitch({
               key={a.id}
               x={pos.x} y={pos.y}
               fontSize={0.9}
+              fontFamily="sans-serif"
               fill="yellow"
               textAnchor="middle"
               dominantBaseline="central"
@@ -317,21 +342,6 @@ export function Pitch({
           );
         })}
 
-      {/* パス矢印 */}
-      {passArrow && (() => {
-        const f = ts(passArrow.from);
-        const t2 = ts(passArrow.to);
-        return (
-          <line
-            x1={f.x} y1={f.y} x2={t2.x} y2={t2.y}
-            stroke="rgba(255,220,0,0.7)"
-            strokeWidth={0.25}
-            strokeDasharray="1 0.5"
-            markerEnd="url(#pass-arrow)"
-            pointerEvents="none"
-          />
-        );
-      })()}
     </svg>
   );
 }

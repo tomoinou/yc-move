@@ -14,17 +14,13 @@ export type Entity = {
   track: TrackKey[];
 };
 
-export type PassEvent = {
-  t: number;
-  kind: 'pass';
-  from: string;
-  to: string;
-  flightMs: number;
+export type BallHolder = {
+  t: number;         // ms
+  holderId: string;  // Entity.id
 };
 
 export type BallTrack = {
-  initialHolder: string;
-  events: PassEvent[];
+  holders: BallHolder[];  // t 昇順。{t:0, holderId:...} から始まる
 };
 
 export type Annotation = {
@@ -36,7 +32,7 @@ export type Annotation = {
 };
 
 export type Play = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   id: string;
   title: string;
   meta: { tags: string[]; updatedAt: string };
@@ -46,7 +42,6 @@ export type Play = {
   entities: Entity[];
   ball: BallTrack;
   annotations: Annotation[];
-  nextAttackIdx: number;   // +A を押すたびにインクリメント
-  nextDefenceIdx: number;  // +D を押すたびにインクリメント
+  nextAttackIdx: number;
+  nextDefenceIdx: number;
 };
-

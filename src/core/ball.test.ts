@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ballStateAt, slowForwardWarnings } from './ball.ts';
+import { ballStateAt, forwardPassWarnings } from './ball.ts';
 import type { Entity, Play } from './types.ts';
 
 function makeEntity(id: string, x: number, y: number): Entity {
@@ -8,7 +8,7 @@ function makeEntity(id: string, x: number, y: number): Entity {
 
 function makePlay(overrides: Partial<Play> = {}): Play {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'test',
     title: 'Test',
     meta: { tags: [], updatedAt: '2026-01-01T00:00:00Z' },
@@ -16,7 +16,7 @@ function makePlay(overrides: Partial<Play> = {}): Play {
     markers: [],
     viewY: 0,
     entities: [makeEntity('p1', 5, 10), makeEntity('p2', 5, 5)],
-    ball: { initialHolder: 'p1', events: [] },
+    ball: { holders: [{ t: 0, holderId: 'p1' }] },
     annotations: [],
     nextAttackIdx: 1,
     nextDefenceIdx: 1,
@@ -25,81 +25,72 @@ function makePlay(overrides: Partial<Play> = {}): Play {
 }
 
 describe('ballStateAt', () => {
-  it('initial holder before any pass', () => {
+  it('初期保持者を返す', () => {
     const play = makePlay();
     const state = ballStateAt(play, 500);
     expect(state.holderId).toBe('p1');
     expect(state.isForward).toBe(false);
   });
 
-  it('holder transitions: held → flying → held', () => {
+  it('フレーム時刻では保持（フライ開始は > cur.t から）', () => {
     const play = makePlay({
-      ball: {
-        initialHolder: 'p1',
-        events: [{ t: 1000, kind: 'pass', from: 'p1', to: 'p2', flightMs: 500 }],
-      },
+      ball: { holders: [{ t: 0, holderId: 'p1' }, { t: 1500, holderId: 'p2' }] },
     });
-    // Before release
-    expect(ballStateAt(play, 999).holderId).toBe('p1');
-    // In flight
-    expect(ballStateAt(play, 1001).holderId).toBeNull();
-    expect(ballStateAt(play, 1499).holderId).toBeNull();
-    // After receive
+    expect(ballStateAt(play, 0).holderId).toBe('p1');
     expect(ballStateAt(play, 1500).holderId).toBe('p2');
+  });
+
+  it('異なる保持者間でボールがフライ', () => {
+    const play = makePlay({
+      ball: { holders: [{ t: 0, holderId: 'p1' }, { t: 1500, holderId: 'p2' }] },
+    });
+    expect(ballStateAt(play, 750).holderId).toBeNull();
     expect(ballStateAt(play, 2000).holderId).toBe('p2');
   });
 
-  it('ball position linearly interpolated during flight', () => {
+  it('同じ保持者が続く区間ではフライしない', () => {
+    const play = makePlay({
+      ball: {
+        holders: [
+          { t: 0, holderId: 'p1' },
+          { t: 1000, holderId: 'p1' },
+          { t: 1500, holderId: 'p2' },
+        ],
+      },
+    });
+    expect(ballStateAt(play, 500).holderId).toBe('p1');
+    expect(ballStateAt(play, 1250).holderId).toBeNull();
+    expect(ballStateAt(play, 2000).holderId).toBe('p2');
+  });
+
+  it('フライ中の位置を線形補間する', () => {
     const play: Play = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: 'test',
       title: 'T',
       meta: { tags: [], updatedAt: '2026-01-01T00:00:00Z' },
       durationMs: 5000,
       markers: [],
       viewY: 0,
-      // p1 stays at (0,0), p2 stays at (10,10)
       entities: [
         { id: 'p1', side: 'attack', label: 'A', track: [{ t: 0, p: { x: 0, y: 0 } }] },
         { id: 'p2', side: 'attack', label: 'B', track: [{ t: 0, p: { x: 10, y: 10 } }] },
       ],
-      ball: {
-        initialHolder: 'p1',
-        events: [{ t: 0, kind: 'pass', from: 'p1', to: 'p2', flightMs: 1000 }],
-      },
+      ball: { holders: [{ t: 0, holderId: 'p1' }, { t: 1000, holderId: 'p2' }] },
       annotations: [],
       nextAttackIdx: 1,
       nextDefenceIdx: 1,
     };
-    // At t=0: release. At t=500: midpoint. At t=1000: receive.
     const mid = ballStateAt(play, 500);
     expect(mid.pos.x).toBeCloseTo(5, 0);
     expect(mid.pos.y).toBeCloseTo(5, 0);
   });
-
-  it('multiple passes: holder chain is correct', () => {
-    const p3 = makeEntity('p3', 0, 0);
-    const play = makePlay({
-      entities: [makeEntity('p1', 5, 10), makeEntity('p2', 5, 5), p3],
-      ball: {
-        initialHolder: 'p1',
-        events: [
-          { t: 0,   kind: 'pass', from: 'p1', to: 'p2', flightMs: 100 },
-          { t: 500, kind: 'pass', from: 'p2', to: 'p3', flightMs: 100 },
-        ],
-      },
-    });
-    expect(ballStateAt(play, 200).holderId).toBe('p2');
-    expect(ballStateAt(play, 550).holderId).toBeNull(); // p2→p3 in flight
-    expect(ballStateAt(play, 700).holderId).toBe('p3');
-  });
 });
 
-describe('slowForwardWarnings', () => {
-  it('forward pass: receiveY > releaseY triggers warning', () => {
-    // p1 at y=10, p2 at y=15: receiver is further in +y = forward
+describe('forwardPassWarnings', () => {
+  it('レシーバーが +y 側にいる場合は警告', () => {
     const play: Play = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: 'test',
       title: 'T',
       meta: { tags: [], updatedAt: '2026-01-01T00:00:00Z' },
@@ -110,22 +101,19 @@ describe('slowForwardWarnings', () => {
         { id: 'p1', side: 'attack', label: 'A', track: [{ t: 0, p: { x: 5, y: 10 } }] },
         { id: 'p2', side: 'attack', label: 'B', track: [{ t: 0, p: { x: 5, y: 15 } }] },
       ],
-      ball: {
-        initialHolder: 'p1',
-        events: [{ t: 1000, kind: 'pass', from: 'p1', to: 'p2', flightMs: 200 }],
-      },
+      ball: { holders: [{ t: 0, holderId: 'p1' }, { t: 1200, holderId: 'p2' }] },
       annotations: [],
       nextAttackIdx: 1,
       nextDefenceIdx: 1,
     };
-    const warnings = slowForwardWarnings(play);
+    const warnings = forwardPassWarnings(play);
     expect(warnings.length).toBe(1);
     expect(warnings[0].receivePos.y).toBeGreaterThan(warnings[0].releasePos.y);
   });
 
-  it('backward pass: receiveY < releaseY produces no warning', () => {
+  it('バックパスは警告なし', () => {
     const play: Play = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: 'test',
       title: 'T',
       meta: { tags: [], updatedAt: '2026-01-01T00:00:00Z' },
@@ -136,14 +124,11 @@ describe('slowForwardWarnings', () => {
         { id: 'p1', side: 'attack', label: 'A', track: [{ t: 0, p: { x: 5, y: 15 } }] },
         { id: 'p2', side: 'attack', label: 'B', track: [{ t: 0, p: { x: 5, y: 10 } }] },
       ],
-      ball: {
-        initialHolder: 'p1',
-        events: [{ t: 1000, kind: 'pass', from: 'p1', to: 'p2', flightMs: 200 }],
-      },
+      ball: { holders: [{ t: 0, holderId: 'p1' }, { t: 1200, holderId: 'p2' }] },
       annotations: [],
       nextAttackIdx: 1,
       nextDefenceIdx: 1,
     };
-    expect(slowForwardWarnings(play).length).toBe(0);
+    expect(forwardPassWarnings(play).length).toBe(0);
   });
 });

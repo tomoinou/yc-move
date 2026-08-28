@@ -6,8 +6,8 @@ interface EntityPanelProps {
   canUndo: boolean;
   canRedo: boolean;
   scrollMode: boolean;
-  passMode: boolean;
   addMode: 'attack' | 'defence' | null;
+  currentFrameHolderId: string | null;
   onAddAttack: () => void;
   onAddDefence: () => void;
   onEditLabel: () => void;
@@ -15,7 +15,7 @@ interface EntityPanelProps {
   onUndo: () => void;
   onRedo: () => void;
   onToggleScroll: () => void;
-  onTogglePass: () => void;
+  onAssignBall: () => void;
 }
 
 const btn = (active: boolean, color?: string) => ({
@@ -23,36 +23,47 @@ const btn = (active: boolean, color?: string) => ({
   color: active ? 'white' : 'rgba(255,255,255,0.3)',
   border: 'none',
   borderRadius: 4,
-  padding: '6px 10px',
+  padding: '6px 12px',
   fontSize: 14,
   cursor: active ? 'pointer' : 'default',
   flexShrink: 0,
 } as const);
 
 export function EntityPanel({
-  play, selectedId, canUndo, canRedo, scrollMode, passMode, addMode,
+  play, selectedId, canUndo, canRedo, scrollMode, addMode, currentFrameHolderId,
   onAddAttack, onAddDefence, onEditLabel, onDeleteEntity, onUndo, onRedo,
-  onToggleScroll, onTogglePass,
+  onToggleScroll, onAssignBall,
 }: EntityPanelProps) {
   const selected = play.entities.find(e => e.id === selectedId);
+  const ballActive = selected !== undefined && currentFrameHolderId === selected.id;
 
   return (
     <div style={{
       background: '#1a1a1a',
       display: 'flex',
       alignItems: 'center',
-      gap: 6,
-      padding: '6px 10px',
+      gap: 4,
+      padding: '3px 10px',
       flexShrink: 0,
     }}>
       <button style={btn(true, addMode === 'attack' ? '#E8272A' : '#8B0000')} onClick={onAddAttack}>+A</button>
       <button style={btn(true, addMode === 'defence' ? '#1755B8' : '#003580')} onClick={onAddDefence}>+D</button>
       <button style={btn(true, scrollMode ? '#555500' : undefined)} onClick={onToggleScroll}>↕</button>
-      <button style={btn(true, passMode ? '#556600' : undefined)} onClick={onTogglePass}>→</button>
 
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, fontSize: 13 }}>
         {selected ? (
           <>
+            <button
+              onClick={onAssignBall}
+              style={{
+                ...btn(ballActive, '#BB6600'),
+                padding: '3px 8px',
+                fontSize: 15,
+              }}
+              title="このフレームでボールを保持"
+            >
+              🏉
+            </button>
             <button
               onClick={onEditLabel}
               style={{
@@ -83,9 +94,7 @@ export function EntityPanel({
               ×
             </button>
           </>
-        ) : (
-          <span style={{ color: 'rgba(255,255,255,0.4)' }}>未選択</span>
-        )}
+        ) : null}
       </div>
 
       <button style={btn(canUndo)} onClick={onUndo} disabled={!canUndo}>↩</button>

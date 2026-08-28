@@ -1,4 +1,4 @@
-import type { PassEvent, Play, Vec2 } from './types.ts';
+import type { Play, Vec2 } from './types.ts';
 import { entityPositionAt } from './interpolate.ts';
 
 export type BallState = {
@@ -8,7 +8,8 @@ export type BallState = {
 };
 
 export type ForwardPassWarning = {
-  event: PassEvent;
+  fromId: string;
+  toId: string;
   releasePos: Vec2;
   receivePos: Vec2;
 };
@@ -23,62 +24,66 @@ function getEntity(play: Play, id: string) {
   return e;
 }
 
-type BallPhase =
-  | { kind: 'held'; holderId: string }
-  | { kind: 'flying'; event: PassEvent; releasePos: Vec2; receivePos: Vec2 };
-
-function resolveBallPhase(play: Play, t: number): BallPhase {
-  let currentHolder = play.ball.initialHolder;
-
-  for (const event of play.ball.events) {
-    if (t < event.t) {
-      return { kind: 'held', holderId: currentHolder };
-    }
-    const receiveTime = event.t + event.flightMs;
-    if (t < receiveTime) {
-      const from = getEntity(play, event.from);
-      const to = getEntity(play, event.to);
-      return {
-        kind: 'flying',
-        event,
-        releasePos: entityPositionAt(from, event.t),
-        receivePos: entityPositionAt(to, receiveTime),
-      };
-    }
-    currentHolder = event.to;
-  }
-
-  return { kind: 'held', holderId: currentHolder };
-}
-
 export function ballStateAt(play: Play, t: number): BallState {
-  const phase = resolveBallPhase(play, t);
-
-  if (phase.kind === 'held') {
-    const holder = getEntity(play, phase.holderId);
-    return { pos: entityPositionAt(holder, t), holderId: phase.holderId, isForward: false };
+  const { holders } = play.ball;
+  if (holders.length === 0) {
+    return { pos: { x: 20, y: 30 }, holderId: null, isForward: false };
   }
 
-  const { event, releasePos, receivePos } = phase;
-  const fraction = (t - event.t) / event.flightMs;
-  return {
-    pos: lerp2(releasePos, receivePos, fraction),
-    holderId: null,
-    // Attack direction is +y (fixed). Forward = receiver further in +y than passer.
-    isForward: receivePos.y > releasePos.y,
-  };
+  let curIdx = 0;
+  for (let i = 1; i < holders.length; i++) {
+    if (holders[i].t <= t) curIdx = i;
+    else break;
+  }
+
+  const cur = holders[curIdx];
+  const next = holders[curIdx + 1];
+
+  // 連続するエントリで異なる保持者 + 現時刻がリリース後 → フライ中
+  if (next && next.holderId !== cur.holderId && t > cur.t) {
+    try {
+      const from = getEntity(play, cur.holderId);
+      const to = getEntity(play, next.holderId);
+      const releasePos = entityPositionAt(from, cur.t);
+      const receivePos = entityPositionAt(to, next.t);
+      const fraction = (t - cur.t) / (next.t - cur.t);
+      return {
+        pos: lerp2(releasePos, receivePos, fraction),
+        holderId: null,
+        isForward: receivePos.y > releasePos.y,
+      };
+    } catch {
+      // エンティティが見つからない場合は保持扱い
+    }
+  }
+
+  try {
+    const holder = getEntity(play, cur.holderId);
+    return { pos: entityPositionAt(holder, t), holderId: cur.holderId, isForward: false };
+  } catch {
+    return { pos: { x: 20, y: 30 }, holderId: null, isForward: false };
+  }
 }
 
-export function slowForwardWarnings(play: Play): ForwardPassWarning[] {
+export function forwardPassWarnings(play: Play): ForwardPassWarning[] {
   const warnings: ForwardPassWarning[] = [];
+  const { holders } = play.ball;
 
-  for (const event of play.ball.events) {
-    const from = getEntity(play, event.from);
-    const to = getEntity(play, event.to);
-    const releasePos = entityPositionAt(from, event.t);
-    const receivePos = entityPositionAt(to, event.t + event.flightMs);
-    if (receivePos.y > releasePos.y) {
-      warnings.push({ event, releasePos, receivePos });
+  for (let i = 0; i < holders.length - 1; i++) {
+    const cur = holders[i];
+    const next = holders[i + 1];
+    if (next.holderId === cur.holderId) continue;
+
+    try {
+      const from = getEntity(play, cur.holderId);
+      const to = getEntity(play, next.holderId);
+      const releasePos = entityPositionAt(from, cur.t);
+      const receivePos = entityPositionAt(to, next.t);
+      if (receivePos.y > releasePos.y) {
+        warnings.push({ fromId: cur.holderId, toId: next.holderId, releasePos, receivePos });
+      }
+    } catch {
+      // エンティティが見つからない場合はスキップ
     }
   }
 

@@ -9,10 +9,8 @@ import { useEditorStore } from '../state/editorStore.ts';
 import { usePlayback } from '../state/usePlayback.ts';
 import { FIELD } from '../core/field.ts';
 import { VIEW_HEIGHT_M, fromScreen } from '../core/camera.ts';
-import { entityPositionAt } from '../core/interpolate.ts';
+import { ballStateAt } from '../core/ball.ts';
 import type { Vec2, Entity } from '../core/types.ts';
-
-const VH = VIEW_HEIGHT_M;
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -21,7 +19,7 @@ function clamp(v: number, lo: number, hi: number) {
 function clampCanonical(p: Vec2): Vec2 {
   return {
     x: clamp(p.x, -FIELD.marginM, FIELD.widthM + FIELD.marginM),
-    y: clamp(p.y, -FIELD.marginM, FIELD.lengthM + FIELD.marginM),
+    y: clamp(p.y, -FIELD.inGoalM, FIELD.lengthM + FIELD.inGoalM),
   };
 }
 
@@ -37,35 +35,51 @@ function setTrackKey(entity: Entity, t: number, p: Vec2): void {
 }
 
 
-const MAX_VIEW_Y = FIELD.lengthM - VH + FIELD.marginM;
-
 export function Editor() {
   const { play, canUndo, canRedo, commit, undo, redo } = usePlayStore();
   const {
-    selectedId, currentPhaseIdx, scrollMode, passMode, passFrom, addMode, viewY: editorViewY,
-    select, setPhaseIdx, setScrollMode, setPassMode, setPassFrom, setAddMode, setViewY,
+    selectedId, currentPhaseIdx, scrollMode, addMode, viewY: editorViewY,
+    select, setPhaseIdx, setScrollMode, setAddMode, setViewY,
   } = useEditorStore();
-  const { currentTime, isPlaying, play: playback, pause, seek } = usePlayback(play.durationMs);
+  const lastPhaseTime = play.markers.length > 0 ? play.markers[play.markers.length - 1] + 100 : 0;
+  const { currentTime, isPlaying, play: playback, pause, seek } = usePlayback(play.durationMs, lastPhaseTime);
 
   const svgRef = useRef<SVGSVGElement>(null);
+  const [viewH, setViewH] = useState(VIEW_HEIGHT_M);
+  const initialCenteredRef = useRef(false);
 
-  // Drag state — local only, not in Zustand
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width > 0) {
+        const vh = height * 44 / width;
+        setViewH(vh);
+        if (!initialCenteredRef.current) {
+          initialCenteredRef.current = true;
+          setViewY(FIELD.halfM - vh / 2);
+        }
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [setViewY]);
+
+  // ドラッグ状態（ローカルのみ）
   const dragRef = useRef<{ entityId: string; moved: boolean } | null>(null);
   const [dragOverride, setDragOverride] = useState<{ entityId: string; pos: Vec2 } | null>(null);
 
-  // Scroll state — local only
+  // スクロール状態（ローカルのみ）
   const scrollRef = useRef<{ startClientY: number; startViewY: number } | null>(null);
 
-  // Cursor position for pass arrow endpoint
-  const [cursorPos, setCursorPos] = useState<Vec2 | null>(null);
-
-  // Mutable ref so window listeners always read the latest values without re-registration
-  const latestRef = useRef({ play, currentPhaseIdx, selectedId, editorViewY, scrollMode, passMode, passFrom, addMode });
+  // 最新値を window リスナーから参照するための mutable ref
+  const latestRef = useRef({ play, currentPhaseIdx, selectedId, editorViewY, scrollMode, addMode });
   useEffect(() => {
-    latestRef.current = { play, currentPhaseIdx, selectedId, editorViewY, scrollMode, passMode, passFrom, addMode };
+    latestRef.current = { play, currentPhaseIdx, selectedId, editorViewY, scrollMode, addMode };
   });
 
-  // Sync editorViewY from play.viewY (e.g., after undo/redo)
+  // undo/redo 後の viewY を反映
   useEffect(() => {
     setViewY(play.viewY);
   }, [play.viewY, setViewY]);
@@ -73,64 +87,53 @@ export function Editor() {
   const phaseTimes = [0, ...play.markers];
   const currentPhaseTime = phaseTimes[currentPhaseIdx] ?? 0;
 
-  // currentTime がフェーズ時刻に一致したら currentPhaseIdx を自動同期
-  useEffect(() => {
-    const idx = phaseTimes.findIndex(t => Math.abs(currentTime - t) <= 50);
-    if (idx >= 0 && idx !== currentPhaseIdx) setPhaseIdx(idx);
-  }, [currentTime]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Onion skin: show adjacent phase positions
+  // オニオンスキン: 停止中かつフレーム時刻一致時のみ前フレームをゴースト表示
   const onionSkinTimes: number[] = [];
-  if (currentPhaseIdx > 0) onionSkinTimes.push(phaseTimes[currentPhaseIdx - 1]);
-  if (currentPhaseIdx < phaseTimes.length - 1) onionSkinTimes.push(phaseTimes[currentPhaseIdx + 1]);
+  if (!isPlaying) {
+    const activeIdx = phaseTimes.findIndex(t => Math.abs(currentTime - t) <= 50);
+    if (activeIdx > 0) onionSkinTimes.push(phaseTimes[activeIdx - 1]);
+  }
+
+  // 現フレームのボール保持者（🏉 ボタンのハイライト用）
+  const currentFrameHolderId = ballStateAt(play, currentPhaseTime).holderId;
 
   function pointerToCanonical(clientX: number, clientY: number): Vec2 | null {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect || rect.width === 0) return null;
+    const scale = 44 / rect.width;
     const svgPt: Vec2 = {
-      x: (clientX - rect.left) * (44 / rect.width),
-      y: (clientY - rect.top) * (VH / rect.height),
+      x: (clientX - rect.left) * scale,
+      y: (clientY - rect.top) * scale,
     };
-    return clampCanonical(fromScreen(svgPt, latestRef.current.editorViewY, VH));
+    const vh = rect.height * scale;
+    return clampCanonical(fromScreen(svgPt, latestRef.current.editorViewY, vh));
   }
 
-  // Global pointer move/up for drag and scroll tracking
+  // グローバル pointermove / pointerup
   useEffect(() => {
     const handleMove = (e: PointerEvent) => {
-      // スクロール処理
       if (scrollRef.current) {
         const rect = svgRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        const deltaM = (e.clientY - scrollRef.current.startClientY) * VH / rect.height;
-        const next = clamp(
-          scrollRef.current.startViewY - deltaM,
-          -FIELD.marginM,
-          MAX_VIEW_Y,
-        );
+        if (!rect || rect.width === 0) return;
+        const scale = 44 / rect.width;
+        const deltaM = (e.clientY - scrollRef.current.startClientY) * scale;
+        const vh = rect.height * scale;
+        const maxViewY = Math.max(-FIELD.inGoalM, FIELD.lengthM + FIELD.inGoalM - vh);
+        const next = clamp(scrollRef.current.startViewY + deltaM, -FIELD.inGoalM, maxViewY);
         setViewY(next);
         return;
       }
 
-      // ドラッグ処理
       const drag = dragRef.current;
       if (drag) {
         const canonical = pointerToCanonical(e.clientX, e.clientY);
         if (!canonical) return;
         if (!drag.moved) dragRef.current = { ...drag, moved: true };
         setDragOverride({ entityId: drag.entityId, pos: canonical });
-        return;
-      }
-
-      // パス矢印カーソル追跡
-      const { passFrom: pf, passMode: pm } = latestRef.current;
-      if (pm && pf) {
-        const c = pointerToCanonical(e.clientX, e.clientY);
-        if (c) setCursorPos(c);
       }
     };
 
     const handleUp = (e: PointerEvent) => {
-      // スクロール終了 → viewY を play に保存
       if (scrollRef.current) {
         commit(draft => { draft.viewY = latestRef.current.editorViewY; });
         scrollRef.current = null;
@@ -144,7 +147,7 @@ export function Editor() {
         const rawPos = pointerToCanonical(e.clientX, e.clientY);
         if (rawPos) {
           const rect = svgRef.current?.getBoundingClientRect();
-          const offsetM = rect ? 36 * VH / rect.height : 2;
+          const offsetM = rect && rect.width > 0 ? 36 * 44 / rect.width : 2;
           const canonical = clampCanonical({ x: rawPos.x, y: rawPos.y + offsetM });
           const { currentPhaseIdx: idx, play: currentPlay } = latestRef.current;
           const t = [0, ...currentPlay.markers][idx] ?? 0;
@@ -168,38 +171,16 @@ export function Editor() {
   }, [commit, setViewY]);
 
   const handleTokenPointerDown = useCallback((entityId: string) => {
-    const { passMode: pm, passFrom: pf, currentPhaseIdx: idx, play: cp } = latestRef.current;
-
-    if (pm) {
-      if (!pf) {
-        setPassFrom(entityId);
-      } else if (pf !== entityId) {
-        const t = [0, ...cp.markers][idx] ?? 0;
-        commit(draft => {
-          const existing = draft.ball.events.findIndex(ev => ev.t === t);
-          const event = { t, kind: 'pass' as const, from: pf, to: entityId, flightMs: 300 };
-          if (existing >= 0) {
-            draft.ball.events[existing] = event;
-          } else {
-            const ins = draft.ball.events.findIndex(ev => ev.t > t);
-            if (ins === -1) draft.ball.events.push(event);
-            else draft.ball.events.splice(ins, 0, event);
-          }
-          if (draft.ball.events.length === 1) draft.ball.initialHolder = pf;
-        });
-        setPassFrom(null);
-        setCursorPos(null);
-      }
+    if (latestRef.current.selectedId === entityId) {
+      select(null);
       return;
     }
-
     select(entityId);
     dragRef.current = { entityId, moved: false };
-  }, [select, commit, setPassFrom]);
+  }, [select]);
 
   const handleSvgPointerDown = useCallback((canonical: Vec2, clientY: number) => {
-    const { scrollMode: sm, passMode: pm, addMode: am,
-            currentPhaseIdx: idx, play: cp, selectedId: sel } = latestRef.current;
+    const { scrollMode: sm, addMode: am, currentPhaseIdx: idx, play: cp, selectedId: sel } = latestRef.current;
 
     if (sm) {
       scrollRef.current = { startClientY: clientY, startViewY: latestRef.current.editorViewY };
@@ -222,18 +203,15 @@ export function Editor() {
           label,
           track: [{ t: 0, p: canonical }],
         });
+        // 最初のアタッカー追加時、ボール保持者が未設定なら自動割当
         if (isAttack && draft.entities.filter(e => e.side === 'attack').length === 1) {
-          draft.ball.initialHolder = id;
+          if (draft.ball.holders.length === 0) {
+            draft.ball.holders = [{ t: 0, holderId: id }];
+          }
         }
       });
       setAddMode(null);
       setTimeout(() => select(newId), 0);
-      return;
-    }
-
-    if (pm) {
-      setPassFrom(null);
-      setCursorPos(null);
       return;
     }
 
@@ -243,19 +221,14 @@ export function Editor() {
       const entity = draft.entities.find(e => e.id === sel);
       if (entity) setTrackKey(entity, t, clampCanonical(canonical));
     });
-  }, [commit, setPassFrom, setAddMode, select]);
+  }, [commit, setAddMode, select]);
 
   const handleAddEntity = useCallback((side: 'attack' | 'defence') => {
-    // トグル: 同じサイドなら OFF、違う or なければ ON
     setAddMode(addMode === side ? null : side);
-    // addMode を ON にするとき他のモードをキャンセル
     if (addMode !== side) {
       setScrollMode(false);
-      setPassMode(false);
-      setPassFrom(null);
-      setCursorPos(null);
     }
-  }, [addMode, setAddMode, setScrollMode, setPassMode, setPassFrom]);
+  }, [addMode, setAddMode, setScrollMode]);
 
   const handleEditLabel = useCallback(() => {
     if (!selectedId) return;
@@ -278,7 +251,6 @@ export function Editor() {
     const times = [0, ...play.markers];
     let targetTime = currentTime;
 
-    // マーカー時刻 or t=0 の場合は現在フェーズ + 1000ms をデフォルトに使用
     if (times.includes(targetTime) || targetTime <= 0) {
       targetTime = currentPhaseTime + 1000;
     }
@@ -300,12 +272,10 @@ export function Editor() {
   }, [play.markers, setPhaseIdx, seek]);
 
   const handlePhaseDelete = useCallback((idx: number) => {
-    // idx は phaseTimes のインデックス（0 は削除不可）
     if (idx <= 0) return;
     commit(draft => {
       draft.markers.splice(idx - 1, 1);
     });
-    // 削除後に currentPhaseIdx が範囲外になる場合は直前に戻す
     if (currentPhaseIdx >= idx) setPhaseIdx(Math.max(0, currentPhaseIdx - 1));
   }, [commit, setPhaseIdx, currentPhaseIdx]);
 
@@ -313,42 +283,38 @@ export function Editor() {
     if (!selectedId) return;
     commit(draft => {
       draft.entities = draft.entities.filter(e => e.id !== selectedId);
-      // ball の参照も整理
-      if (draft.ball.initialHolder === selectedId) {
-        draft.ball.initialHolder = draft.entities[0]?.id ?? '';
+      draft.ball.holders = draft.ball.holders.filter(h => h.holderId !== selectedId);
+      if (draft.ball.holders.length === 0 && draft.entities.length > 0) {
+        draft.ball.holders = [{ t: 0, holderId: draft.entities[0].id }];
       }
-      draft.ball.events = draft.ball.events.filter(
-        ev => ev.from !== selectedId && ev.to !== selectedId,
-      );
     });
     select(null);
   }, [selectedId, commit, select]);
 
+  const handleAssignBall = useCallback(() => {
+    const { currentPhaseIdx: idx, play: cp, selectedId: sel } = latestRef.current;
+    if (!sel) return;
+    const t = [0, ...cp.markers][idx] ?? 0;
+    commit(draft => {
+      const holders = draft.ball.holders;
+      const existingIdx = holders.findIndex(h => h.t === t);
+      if (existingIdx >= 0) {
+        holders[existingIdx].holderId = sel;
+      } else {
+        const ins = holders.findIndex(h => h.t > t);
+        const entry = { t, holderId: sel };
+        if (ins === -1) holders.push(entry);
+        else holders.splice(ins, 0, entry);
+      }
+    });
+  }, [commit]);
+
   const handleToggleScroll = useCallback(() => {
     setScrollMode(!scrollMode);
     if (!scrollMode) {
-      setPassMode(false);
-      setPassFrom(null);
-      setCursorPos(null);
       setAddMode(null);
     }
-  }, [scrollMode, setScrollMode, setPassMode, setPassFrom, setAddMode]);
-
-  const handleTogglePass = useCallback(() => {
-    setPassMode(!passMode);
-    setPassFrom(null);
-    setCursorPos(null);
-    if (!passMode) {
-      setScrollMode(false);
-      setAddMode(null);
-    }
-  }, [passMode, setPassMode, setPassFrom, setScrollMode, setAddMode]);
-
-  // passArrow: passFrom entity の現在フェーズ位置 → cursorPos
-  const passFromEntity = passFrom ? play.entities.find(e => e.id === passFrom) : null;
-  const passArrow = passMode && passFromEntity && cursorPos
-    ? { from: entityPositionAt(passFromEntity, currentPhaseTime), to: cursorPos }
-    : null;
+  }, [scrollMode, setScrollMode, setAddMode]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
@@ -356,21 +322,22 @@ export function Editor() {
         <Pitch
           play={play}
           viewY={editorViewY}
+          viewH={viewH}
           currentTime={currentTime}
           selectedId={selectedId}
           onionSkinTimes={onionSkinTimes}
           dragOverride={dragOverride}
           scrollMode={scrollMode}
-          passArrow={passArrow}
           svgRef={svgRef}
           onSvgPointerDown={handleSvgPointerDown}
           onTokenPointerDown={handleTokenPointerDown}
         />
-        {scrollMode && <ScrollIndicator viewY={editorViewY} />}
+        {scrollMode && <ScrollIndicator viewY={editorViewY} viewH={viewH} />}
       </div>
       <PhaseChips
         markers={play.markers}
         currentTime={currentTime}
+        isPlaying={isPlaying}
         onSelect={handlePhaseSelect}
         onAdd={handlePhaseAdd}
         onDelete={handlePhaseDelete}
@@ -389,8 +356,8 @@ export function Editor() {
         canUndo={canUndo}
         canRedo={canRedo}
         scrollMode={scrollMode}
-        passMode={passMode}
         addMode={addMode}
+        currentFrameHolderId={currentFrameHolderId}
         onAddAttack={() => handleAddEntity('attack')}
         onAddDefence={() => handleAddEntity('defence')}
         onEditLabel={handleEditLabel}
@@ -398,7 +365,7 @@ export function Editor() {
         onUndo={undo}
         onRedo={redo}
         onToggleScroll={handleToggleScroll}
-        onTogglePass={handleTogglePass}
+        onAssignBall={handleAssignBall}
       />
     </div>
   );

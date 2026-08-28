@@ -5,13 +5,14 @@ const AT_PHASE_TOLERANCE_MS = 50;
 interface PhaseChipsProps {
   markers: number[];
   currentTime: number;
+  isPlaying: boolean;
   onSelect: (idx: number) => void;
   onAdd: () => void;
   onDelete: (idx: number) => void;
 }
 
 export function PhaseChips({
-  markers, currentTime, onSelect, onAdd, onDelete,
+  markers, currentTime, isPlaying, onSelect, onAdd, onDelete,
 }: PhaseChipsProps) {
   const phaseTimes = [0, ...markers];
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -38,13 +39,13 @@ export function PhaseChips({
           minWidth: 0,
           overflowX: 'auto',
           display: 'flex',
-          gap: 6,
-          padding: '6px 0 6px 10px',
+          gap: 4,
+          padding: '3px 0 3px 8px',
           scrollbarWidth: 'none',
         }}
       >
         {phaseTimes.map((t, i) => {
-          const isActive = Math.abs(currentTime - t) <= AT_PHASE_TOLERANCE_MS;
+          const isActive = !isPlaying && Math.abs(currentTime - t) <= AT_PHASE_TOLERANCE_MS;
           return (
             <div key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
               <button

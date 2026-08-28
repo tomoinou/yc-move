@@ -1,16 +1,14 @@
 interface PhaseChipsProps {
   markers: number[];
   currentPhaseIdx: number;
-  currentTime: number;
   onSelect: (idx: number) => void;
   onAdd: () => void;
 }
 
 export function PhaseChips({
-  markers, currentPhaseIdx, currentTime, onSelect, onAdd,
+  markers, currentPhaseIdx, onSelect, onAdd,
 }: PhaseChipsProps) {
   const phaseTimes = [0, ...markers];
-  const canAdd = !phaseTimes.includes(currentTime) && currentTime > 0;
 
   return (
     <div style={{
@@ -45,15 +43,14 @@ export function PhaseChips({
       ))}
       <button
         onClick={onAdd}
-        disabled={!canAdd}
         style={{
           background: 'rgba(255,255,255,0.08)',
-          color: canAdd ? 'white' : 'rgba(255,255,255,0.3)',
+          color: 'white',
           border: '1px dashed rgba(255,255,255,0.3)',
           borderRadius: 4,
           padding: '4px 10px',
           fontSize: 13,
-          cursor: canAdd ? 'pointer' : 'default',
+          cursor: 'pointer',
           flexShrink: 0,
         }}
       >

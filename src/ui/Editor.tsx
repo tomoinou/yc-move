@@ -268,13 +268,25 @@ export function Editor() {
 
   const handlePhaseAdd = useCallback(() => {
     const times = [0, ...play.markers];
-    if (times.includes(currentTime) || currentTime <= 0) return;
+    let targetTime = currentTime;
+
+    // マーカー時刻 or t=0 の場合は前後フェーズの中間時刻を使用
+    if (times.includes(targetTime) || targetTime <= 0) {
+      const sorted = [...times, play.durationMs].sort((a, b) => a - b);
+      const afterIdx = sorted.findIndex(t => t > currentTime);
+      const before = sorted[(afterIdx === -1 ? sorted.length - 1 : afterIdx) - 1] ?? 0;
+      const after = sorted[afterIdx === -1 ? sorted.length - 1 : afterIdx] ?? play.durationMs;
+      targetTime = Math.round((before + after) / 2);
+    }
+
+    if (targetTime <= 0 || targetTime >= play.durationMs || times.includes(targetTime)) return;
+
     commit(draft => {
-      draft.markers = [...draft.markers, currentTime].sort((a, b) => a - b);
+      draft.markers = [...draft.markers, targetTime].sort((a, b) => a - b);
     });
-    const newIdx = [0, ...play.markers, currentTime].sort((a, b) => a - b).indexOf(currentTime);
+    const newIdx = [0, ...play.markers, targetTime].sort((a, b) => a - b).indexOf(targetTime);
     setPhaseIdx(newIdx);
-  }, [currentTime, play.markers, commit, setPhaseIdx]);
+  }, [currentTime, play.markers, play.durationMs, commit, setPhaseIdx]);
 
   const handlePhaseSelect = useCallback((idx: number) => {
     setPhaseIdx(idx);
@@ -329,7 +341,6 @@ export function Editor() {
       <PhaseChips
         markers={play.markers}
         currentPhaseIdx={currentPhaseIdx}
-        currentTime={currentTime}
         onSelect={handlePhaseSelect}
         onAdd={handlePhaseAdd}
       />

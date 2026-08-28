@@ -7,6 +7,7 @@ interface EntityPanelProps {
   canRedo: boolean;
   scrollMode: boolean;
   passMode: boolean;
+  addMode: 'attack' | 'defence' | null;
   onAddAttack: () => void;
   onAddDefence: () => void;
   onEditLabel: () => void;
@@ -29,7 +30,7 @@ const btn = (active: boolean, color?: string) => ({
 } as const);
 
 export function EntityPanel({
-  play, selectedId, canUndo, canRedo, scrollMode, passMode,
+  play, selectedId, canUndo, canRedo, scrollMode, passMode, addMode,
   onAddAttack, onAddDefence, onEditLabel, onDeleteEntity, onUndo, onRedo,
   onToggleScroll, onTogglePass,
 }: EntityPanelProps) {
@@ -44,8 +45,8 @@ export function EntityPanel({
       padding: '6px 10px',
       flexShrink: 0,
     }}>
-      <button style={btn(true, '#8B0000')} onClick={onAddAttack}>+A</button>
-      <button style={btn(true, '#003580')} onClick={onAddDefence}>+D</button>
+      <button style={btn(true, addMode === 'attack' ? '#E8272A' : '#8B0000')} onClick={onAddAttack}>+A</button>
+      <button style={btn(true, addMode === 'defence' ? '#1755B8' : '#003580')} onClick={onAddDefence}>+D</button>
       <button style={btn(true, scrollMode ? '#555500' : undefined)} onClick={onToggleScroll}>↕</button>
       <button style={btn(true, passMode ? '#556600' : undefined)} onClick={onTogglePass}>→</button>
 

@@ -42,8 +42,8 @@ const MAX_VIEW_Y = FIELD.lengthM - VH + FIELD.marginM;
 export function Editor() {
   const { play, canUndo, canRedo, commit, undo, redo } = usePlayStore();
   const {
-    selectedId, currentPhaseIdx, scrollMode, passMode, passFrom, viewY: editorViewY,
-    select, setPhaseIdx, setScrollMode, setPassMode, setPassFrom, setViewY,
+    selectedId, currentPhaseIdx, scrollMode, passMode, passFrom, addMode, viewY: editorViewY,
+    select, setPhaseIdx, setScrollMode, setPassMode, setPassFrom, setAddMode, setViewY,
   } = useEditorStore();
   const { currentTime, isPlaying, play: playback, pause, seek } = usePlayback(play.durationMs);
 
@@ -60,9 +60,9 @@ export function Editor() {
   const [cursorPos, setCursorPos] = useState<Vec2 | null>(null);
 
   // Mutable ref so window listeners always read the latest values without re-registration
-  const latestRef = useRef({ play, currentPhaseIdx, selectedId, editorViewY, scrollMode, passMode, passFrom });
+  const latestRef = useRef({ play, currentPhaseIdx, selectedId, editorViewY, scrollMode, passMode, passFrom, addMode });
   useEffect(() => {
-    latestRef.current = { play, currentPhaseIdx, selectedId, editorViewY, scrollMode, passMode, passFrom };
+    latestRef.current = { play, currentPhaseIdx, selectedId, editorViewY, scrollMode, passMode, passFrom, addMode };
   });
 
   // Sync editorViewY from play.viewY (e.g., after undo/redo)
@@ -189,11 +189,36 @@ export function Editor() {
   }, [select, commit, setPassFrom]);
 
   const handleSvgPointerDown = useCallback((canonical: Vec2, clientY: number) => {
-    const { scrollMode: sm, passMode: pm,
+    const { scrollMode: sm, passMode: pm, addMode: am,
             currentPhaseIdx: idx, play: cp, selectedId: sel } = latestRef.current;
 
     if (sm) {
       scrollRef.current = { startClientY: clientY, startViewY: latestRef.current.editorViewY };
+      return;
+    }
+
+    if (am !== null) {
+      let newId = '';
+      commit(draft => {
+        const id = `${am[0]}${Date.now()}`;
+        newId = id;
+        const isAttack = am === 'attack';
+        const labelIdx = isAttack ? draft.nextAttackIdx : draft.nextDefenceIdx;
+        const label = `${isAttack ? 'A' : 'D'}${labelIdx}`;
+        if (isAttack) draft.nextAttackIdx = labelIdx + 1;
+        else draft.nextDefenceIdx = labelIdx + 1;
+        draft.entities.push({
+          id,
+          side: am,
+          label,
+          track: [{ t: 0, p: canonical }],
+        });
+        if (isAttack && draft.entities.filter(e => e.side === 'attack').length === 1) {
+          draft.ball.initialHolder = id;
+        }
+      });
+      setAddMode(null);
+      setTimeout(() => select(newId), 0);
       return;
     }
 
@@ -209,31 +234,19 @@ export function Editor() {
       const entity = draft.entities.find(e => e.id === sel);
       if (entity) setTrackKey(entity, t, clampCanonical(canonical));
     });
-  }, [commit, setPassFrom]);
+  }, [commit, setPassFrom, setAddMode, select]);
 
   const handleAddEntity = useCallback((side: 'attack' | 'defence') => {
-    let newId = '';
-    commit(draft => {
-      const id = `${side[0]}${Date.now()}`;
-      newId = id;
-      const isAttack = side === 'attack';
-      const idx = isAttack ? draft.nextAttackIdx : draft.nextDefenceIdx;
-      const label = `${isAttack ? 'A' : 'D'}${idx}`;
-      if (isAttack) draft.nextAttackIdx = idx + 1;
-      else draft.nextDefenceIdx = idx + 1;
-      const defaultY = side === 'attack' ? 5 : 10;
-      draft.entities.push({
-        id,
-        side,
-        label,
-        track: [{ t: 0, p: { x: FIELD.widthM / 2, y: defaultY } }],
-      });
-      if (side === 'attack' && draft.entities.filter(e => e.side === 'attack').length === 1) {
-        draft.ball.initialHolder = id;
-      }
-    });
-    setTimeout(() => select(newId), 0);
-  }, [commit, select]);
+    // トグル: 同じサイドなら OFF、違う or なければ ON
+    setAddMode(addMode === side ? null : side);
+    // addMode を ON にするとき他のモードをキャンセル
+    if (addMode !== side) {
+      setScrollMode(false);
+      setPassMode(false);
+      setPassFrom(null);
+      setCursorPos(null);
+    }
+  }, [addMode, setAddMode, setScrollMode, setPassMode, setPassFrom]);
 
   const handleEditLabel = useCallback(() => {
     if (!selectedId) return;
@@ -308,22 +321,22 @@ export function Editor() {
   const handleToggleScroll = useCallback(() => {
     setScrollMode(!scrollMode);
     if (!scrollMode) {
-      // スクロールモード ON 時はパスモードをオフ
       setPassMode(false);
       setPassFrom(null);
       setCursorPos(null);
+      setAddMode(null);
     }
-  }, [scrollMode, setScrollMode, setPassMode, setPassFrom]);
+  }, [scrollMode, setScrollMode, setPassMode, setPassFrom, setAddMode]);
 
   const handleTogglePass = useCallback(() => {
     setPassMode(!passMode);
     setPassFrom(null);
     setCursorPos(null);
     if (!passMode) {
-      // パスモード ON 時はスクロールモードをオフ
       setScrollMode(false);
+      setAddMode(null);
     }
-  }, [passMode, setPassMode, setPassFrom, setScrollMode]);
+  }, [passMode, setPassMode, setPassFrom, setScrollMode, setAddMode]);
 
   // passArrow: passFrom entity の現在フェーズ位置 → cursorPos
   const passFromEntity = passFrom ? play.entities.find(e => e.id === passFrom) : null;
@@ -371,6 +384,7 @@ export function Editor() {
         canRedo={canRedo}
         scrollMode={scrollMode}
         passMode={passMode}
+        addMode={addMode}
         onAddAttack={() => handleAddEntity('attack')}
         onAddDefence={() => handleAddEntity('defence')}
         onEditLabel={handleEditLabel}

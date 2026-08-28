@@ -272,13 +272,9 @@ export function Editor() {
     const times = [0, ...play.markers];
     let targetTime = currentTime;
 
-    // マーカー時刻 or t=0 の場合は前後フェーズの中間時刻を使用
+    // マーカー時刻 or t=0 の場合は現在フェーズ + 1000ms をデフォルトに使用
     if (times.includes(targetTime) || targetTime <= 0) {
-      const sorted = [...times, play.durationMs].sort((a, b) => a - b);
-      const afterIdx = sorted.findIndex(t => t > currentTime);
-      const before = sorted[(afterIdx === -1 ? sorted.length - 1 : afterIdx) - 1] ?? 0;
-      const after = sorted[afterIdx === -1 ? sorted.length - 1 : afterIdx] ?? play.durationMs;
-      targetTime = Math.round((before + after) / 2);
+      targetTime = currentPhaseTime + 1000;
     }
 
     if (targetTime <= 0 || targetTime >= play.durationMs || times.includes(targetTime)) return;
@@ -288,7 +284,8 @@ export function Editor() {
     });
     const newIdx = [0, ...play.markers, targetTime].sort((a, b) => a - b).indexOf(targetTime);
     setPhaseIdx(newIdx);
-  }, [currentTime, play.markers, play.durationMs, commit, setPhaseIdx]);
+    seek(targetTime);
+  }, [currentTime, currentPhaseTime, play.markers, play.durationMs, commit, setPhaseIdx, seek]);
 
   const handlePhaseSelect = useCallback((idx: number) => {
     setPhaseIdx(idx);

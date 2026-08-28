@@ -64,7 +64,7 @@ interface PitchProps {
   dragOverride?: { entityId: string; pos: Vec2 } | null;
   scrollMode?: boolean;
   svgRef?: RefObject<SVGSVGElement | null>;
-  onSvgPointerDown?: (canonical: Vec2, clientY: number) => void;
+  onSvgPointerDown?: (canonical: Vec2, clientX: number, clientY: number) => void;
 }
 
 export function Pitch({
@@ -139,7 +139,7 @@ export function Pitch({
         if (!onSvgPointerDown) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const svgPt = pointerToSvgCoords(e.clientX, e.clientY, rect);
-        onSvgPointerDown(fromScreen(svgPt, viewY, viewH), e.clientY);
+        onSvgPointerDown(fromScreen(svgPt, viewY, viewH), e.clientX, e.clientY);
       }}
     >
       {/* 茶色（ハードコート）: タッチライン外マージン（全背景） */}

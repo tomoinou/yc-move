@@ -15,7 +15,8 @@ import { encodePlay } from '../core/share.ts';
 import type { Vec2, Entity } from '../core/types.ts';
 
 const AT_PHASE_TOLERANCE_MS = 50;
-const DRAG_OFFSET_PX = 36; // ドラッグ中、表示・着地点を指先より上にずらす量
+const DRAG_OFFSET_PX = 36;      // ドラッグ最大オフセット量(px)
+const DRAG_RAMP_PX    = 40;     // この距離(px)でオフセットが0→最大まで線形補間される
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -82,7 +83,7 @@ export function Editor() {
   }, [setViewY]);
 
   // ドラッグ状態（ローカルのみ）
-  const dragRef = useRef<{ entityId: string; moved: boolean } | null>(null);
+  const dragRef = useRef<{ entityId: string; moved: boolean; startClientX: number; startClientY: number } | null>(null);
   const [dragOverride, setDragOverride] = useState<{ entityId: string; pos: Vec2 } | null>(null);
 
   // スクロール状態（ローカルのみ）
@@ -149,7 +150,12 @@ export function Editor() {
 
       const drag = dragRef.current;
       if (drag) {
-        const canonical = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX);
+        const dx = e.clientX - drag.startClientX;
+        const dy = e.clientY - drag.startClientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const ramp = Math.min(1, dist / DRAG_RAMP_PX);
+        const offsetPx = DRAG_OFFSET_PX * ramp;
+        const canonical = pointerToCanonical(e.clientX, e.clientY - offsetPx);
         if (!canonical) return;
         if (!drag.moved) dragRef.current = { ...drag, moved: true };
         setDragOverride({ entityId: drag.entityId, pos: canonical });
@@ -167,7 +173,11 @@ export function Editor() {
       if (!drag) { setDragOverride(null); return; }
 
       if (drag.moved) {
-        const rawPos = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX);
+        const dx = e.clientX - drag.startClientX;
+        const dy = e.clientY - drag.startClientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const ramp = Math.min(1, dist / DRAG_RAMP_PX);
+        const rawPos = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX * ramp);
         if (rawPos) {
           const canonical = clampCanonical(rawPos);
           const { currentPhaseIdx: idx, play: currentPlay } = latestRef.current;
@@ -196,7 +206,7 @@ export function Editor() {
     if (!isAtPhase && selectedId) select(null);
   }, [isAtPhase, selectedId, select]);
 
-  const handleSvgPointerDown = useCallback((canonical: Vec2, clientY: number) => {
+  const handleSvgPointerDown = useCallback((canonical: Vec2, clientX: number, clientY: number) => {
     const { scrollMode: sm, addMode: am, isAtPhase: iap, play: cp, currentTime: ct } = latestRef.current;
 
     if (sm) {
@@ -255,7 +265,7 @@ export function Editor() {
       select(null);
     } else {
       select(nearestId);
-      dragRef.current = { entityId: nearestId, moved: false };
+      dragRef.current = { entityId: nearestId, moved: false, startClientX: clientX, startClientY: clientY };
     }
   }, [commit, setAddMode, select]);
 

@@ -49,7 +49,7 @@ export function Controls({
         />
       </div>
       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', paddingLeft: 48 }}>
-        {(currentTime / 1000).toFixed(1)}s / {(durationMs / 1000).toFixed(1)}s
+        {Math.round(currentTime / 1000)}/{Math.round(durationMs / 1000)}
       </div>
     </div>
   );

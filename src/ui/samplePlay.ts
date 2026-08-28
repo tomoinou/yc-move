@@ -6,7 +6,7 @@ export const samplePlay: Play = {
   id: 'default',
   title: '新規プレイ',
   meta: { tags: [], updatedAt: '2026-08-28T00:00:00Z' },
-  durationMs: 6000,
+  durationMs: 10000,
   markers: [],
   viewY: -FIELD.marginM,
   entities: [

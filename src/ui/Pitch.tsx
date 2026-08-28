@@ -2,12 +2,13 @@ import type { Play, Vec2 } from '../core/types.ts';
 import { FIELD } from '../core/field.ts';
 import { toScreen, VIEW_HEIGHT_M } from '../core/camera.ts';
 import { entityPositionAt } from '../core/interpolate.ts';
+import { ballStateAt } from '../core/ball.ts';
 
 const VH = VIEW_HEIGHT_M;
-
 const TOKEN_RADIUS = 1.5;
 const MAX_FONT = 1.2;
 const MIN_FONT = 0.6;
+const TRACK_SAMPLES = 20;
 
 const SIDE_COLOR: Record<'attack' | 'defence', string> = {
   attack: '#E8272A',
@@ -33,9 +34,10 @@ function tokenFontSize(label: string): number {
 interface PitchProps {
   play: Play;
   viewY?: number;
+  currentTime?: number;
 }
 
-export function Pitch({ play, viewY = -FIELD.marginM }: PitchProps) {
+export function Pitch({ play, viewY = -FIELD.marginM, currentTime = 0 }: PitchProps) {
   const ts = (p: Vec2) => toScreen(p, viewY, VH);
 
   const hLine = (y: number, strokeWidth: number, strokeDasharray?: string) => {
@@ -66,6 +68,8 @@ export function Pitch({ play, viewY = -FIELD.marginM }: PitchProps) {
   };
 
   const playAreaOrigin = ts({ x: 0, y: FIELD.lengthM });
+  const bs = ballStateAt(play, currentTime);
+  const bp = ts(bs.pos);
 
   return (
     <svg
@@ -118,9 +122,31 @@ export function Pitch({ play, viewY = -FIELD.marginM }: PitchProps) {
         }),
       )}
 
+      {/* 軌跡オーバーレイ */}
+      {play.entities.map(entity =>
+        entity.track.slice(0, -1).map((k, i) => {
+          const k2 = entity.track[i + 1];
+          if (k2.hold) return null;
+          const d = Array.from({ length: TRACK_SAMPLES + 1 }, (_, s) => {
+            const t = k.t + (k2.t - k.t) * (s / TRACK_SAMPLES);
+            const sp = ts(entityPositionAt(entity, t));
+            return `${s === 0 ? 'M' : 'L'}${sp.x},${sp.y}`;
+          }).join(' ');
+          return (
+            <path
+              key={`tr-${entity.id}-${i}`}
+              d={d}
+              fill="none"
+              stroke="rgba(255,255,255,0.3)"
+              strokeWidth={0.12}
+            />
+          );
+        }),
+      )}
+
       {/* トークン */}
       {play.entities.map(entity => {
-        const pos = ts(entityPositionAt(entity, 0));
+        const pos = ts(entityPositionAt(entity, currentTime));
         const fs = tokenFontSize(entity.label);
         return (
           <g key={entity.id}>
@@ -145,6 +171,49 @@ export function Pitch({ play, viewY = -FIELD.marginM }: PitchProps) {
           </g>
         );
       })}
+
+      {/* ボール */}
+      <circle
+        cx={bp.x} cy={bp.y}
+        r={0.6}
+        fill={bs.isForward ? '#FF8C00' : '#F5F5DC'}
+        stroke="rgba(0,0,0,0.6)"
+        strokeWidth={0.08}
+      />
+      {bs.isForward && (
+        <text
+          x={bp.x} y={bp.y - 1.2}
+          fontSize={0.8}
+          fill="#FF8C00"
+          textAnchor="middle"
+          pointerEvents="none"
+        >
+          FWD
+        </text>
+      )}
+
+      {/* 注釈: from/to でフィルタ */}
+      {play.annotations
+        .filter(a => currentTime >= (a.from ?? 0) && currentTime <= (a.to ?? play.durationMs))
+        .map(a => {
+          const pos = ts(a.p);
+          return (
+            <text
+              key={a.id}
+              x={pos.x} y={pos.y}
+              fontSize={0.9}
+              fill="yellow"
+              textAnchor="middle"
+              dominantBaseline="central"
+              stroke="rgba(0,0,0,0.7)"
+              strokeWidth={0.15}
+              paintOrder="stroke"
+              pointerEvents="none"
+            >
+              {a.text}
+            </text>
+          );
+        })}
     </svg>
   );
 }

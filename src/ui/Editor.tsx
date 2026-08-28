@@ -15,6 +15,7 @@ import { encodePlay } from '../core/share.ts';
 import type { Vec2, Entity } from '../core/types.ts';
 
 const AT_PHASE_TOLERANCE_MS = 50;
+const DRAG_OFFSET_PX = 36; // ドラッグ中、表示・着地点を指先より上にずらす量
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -148,7 +149,7 @@ export function Editor() {
 
       const drag = dragRef.current;
       if (drag) {
-        const canonical = pointerToCanonical(e.clientX, e.clientY);
+        const canonical = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX);
         if (!canonical) return;
         if (!drag.moved) dragRef.current = { ...drag, moved: true };
         setDragOverride({ entityId: drag.entityId, pos: canonical });
@@ -166,7 +167,7 @@ export function Editor() {
       if (!drag) { setDragOverride(null); return; }
 
       if (drag.moved) {
-        const rawPos = pointerToCanonical(e.clientX, e.clientY);
+        const rawPos = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX);
         if (rawPos) {
           const canonical = clampCanonical(rawPos);
           const { currentPhaseIdx: idx, play: currentPlay } = latestRef.current;

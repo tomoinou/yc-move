@@ -17,6 +17,7 @@ import type { Vec2, Entity, EntityShape } from '../core/types.ts';
 const AT_PHASE_TOLERANCE_MS = 50;
 const DRAG_OFFSET_PX = 36;      // ドラッグ最大オフセット量(px)
 const DRAG_RAMP_PX    = 40;     // この距離(px)でオフセットが0→最大まで線形補間される
+const DRAG_START_PX   = 5;      // これ未満の指のぶれはタップとして扱う
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -83,7 +84,8 @@ export function Editor() {
   }, [setViewY]);
 
   // ドラッグ状態（ローカルのみ）
-  const dragRef = useRef<{ entityId: string; moved: boolean; startClientX: number; startClientY: number } | null>(null);
+  // wasSelected: 押下時点で既に選択中だったか（動かさず離したら選択解除する）
+  const dragRef = useRef<{ entityId: string; moved: boolean; wasSelected: boolean; startClientX: number; startClientY: number } | null>(null);
   const [dragOverride, setDragOverride] = useState<{ entityId: string; pos: Vec2 } | null>(null);
 
   // スクロール状態（ローカルのみ）
@@ -153,6 +155,7 @@ export function Editor() {
         const dx = e.clientX - drag.startClientX;
         const dy = e.clientY - drag.startClientY;
         const dist = Math.sqrt(dx * dx + dy * dy);
+        if (!drag.moved && dist < DRAG_START_PX) return;
         const ramp = Math.min(1, dist / DRAG_RAMP_PX);
         const offsetPx = DRAG_OFFSET_PX * ramp;
         const canonical = pointerToCanonical(e.clientX, e.clientY - offsetPx);
@@ -183,6 +186,8 @@ export function Editor() {
             if (entity) setTrackKey(entity, t, canonical);
           });
         }
+      } else if (drag.wasSelected) {
+        select(null);
       }
 
       dragRef.current = null;
@@ -195,7 +200,7 @@ export function Editor() {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
     };
-  }, [commit, setViewY]);
+  }, [commit, setViewY, select]);
 
   // フレーム点灯中でなければ選択解除して離脱
   useEffect(() => {
@@ -258,12 +263,9 @@ export function Editor() {
 
     if (nearestId === null) return;
 
-    if (latestRef.current.selectedId === nearestId) {
-      select(null);
-    } else {
-      select(nearestId);
-      dragRef.current = { entityId: nearestId, moved: false, startClientX: clientX, startClientY: clientY };
-    }
+    const wasSelected = latestRef.current.selectedId === nearestId;
+    if (!wasSelected) select(nearestId);
+    dragRef.current = { entityId: nearestId, moved: false, wasSelected, startClientX: clientX, startClientY: clientY };
   }, [commit, setAddMode, select]);
 
   const handleAddEntity = useCallback((side: 'attack' | 'defence') => {

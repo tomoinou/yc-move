@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 2,
+  "id": "default",
+  "title": "新規プレイ",
+  "meta": {
+    "tags": [],
+    "updatedAt": "2026-10-06T18:07:07.751Z"
+  },
+  "durationMs": 10000,
+  "markers": [],
+  "viewY": 14,
+  "entities": [
+    {
+      "id": "a1",
+      "side": "attack",
+      "label": "A1",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 8,
+            "y": 33
+          }
+        }
+      ]
+    },
+    {
+      "id": "a2",
+      "side": "attack",
+      "label": "A2",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 13,
+            "y": 28
+          }
+        }
+      ]
+    },
+    {
+      "id": "a3",
+      "side": "attack",
+      "label": "A3",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 18,
+            "y": 23
+          }
+        }
+      ]
+    },
+    {
+      "id": "a4",
+      "side": "attack",
+      "label": "A4",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 23,
+            "y": 18.000000000000004
+          }
+        }
+      ]
+    },
+    {
+      "id": "a5",
+      "side": "attack",
+      "label": "A5",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 3,
+            "y": 28
+          }
+        }
+      ]
+    },
+    {
+      "id": "a6",
+      "side": "attack",
+      "label": "A6",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 28,
+            "y": 13.000000000000004
+          }
+        }
+      ]
+    },
+    {
+      "id": "d1",
+      "side": "defence",
+      "label": "D1",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 8,
+            "y": 37
+          }
+        }
+      ]
+    },
+    {
+      "id": "d2",
+      "side": "defence",
+      "label": "D2",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 13,
+            "y": 39.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "d3",
+      "side": "defence",
+      "label": "D3",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 18,
+            "y": 39.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "d4",
+      "side": "defence",
+      "label": "D4",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 23,
+            "y": 39.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "d5",
+      "side": "defence",
+      "label": "D5",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 3,
+            "y": 39.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "d6",
+      "side": "defence",
+      "label": "D6",
+      "track": [
+        {
+          "t": 0,
+          "p": {
+            "x": 28,
+            "y": 39.5
+          }
+        }
+      ]
+    }
+  ],
+  "ball": {
+    "holders": [
+      {
+        "t": 0,
+        "holderId": "a1"
+      }
+    ]
+  },
+  "annotations": [],
+  "nextAttackIdx": 7,
+  "nextDefenceIdx": 7
+}

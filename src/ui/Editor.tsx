@@ -15,9 +15,12 @@ import { encodePlay } from '../core/share.ts';
 import type { Vec2, Entity, EntityShape } from '../core/types.ts';
 
 const AT_PHASE_TOLERANCE_MS = 50;
-const DRAG_OFFSET_PX = 36;      // ドラッグ最大オフセット量(px)
-const DRAG_RAMP_PX    = 40;     // この距離(px)でオフセットが0→最大まで線形補間される
+const DRAG_OFFSET_PX = 36;      // ドラッグ中に指より上へ浮かせる量(px)
+const DRAG_LIFT_MS    = 250;    // 浮き上がりにかける時間。距離ではなく時間で行い、移動方向に依存させない
 const DRAG_START_PX   = 5;      // これ未満の指のぶれはタップとして扱う
+
+// ゆっくり始まりゆっくり終わる（出だしの急な動きを避ける）
+const smoothstep = (x: number) => x * x * (3 - 2 * x);
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -85,10 +88,11 @@ export function Editor() {
 
   // ドラッグ状態（ローカルのみ）
   // wasSelected: 押下時点で既に選択中だったか（動かさず離したら選択解除する）
-  // ramp: 浮き上がり量の割合（単調増加）、lastPos: 最後に表示した位置＝着地点
+  // liftStart: 浮き上がり開始時刻、lastPos: 最後に表示した位置＝着地点
   const dragRef = useRef<{
     entityId: string; moved: boolean; wasSelected: boolean;
-    startClientX: number; startClientY: number; ramp: number; lastPos: Vec2 | null;
+    startClientX: number; startClientY: number; clientX: number; clientY: number;
+    liftStart: number | null; lastPos: Vec2 | null;
     grab: Vec2; // 押さえた点からプレイヤー中心へのずれ(m)。中心が指へ吸い寄せられるのを防ぐ
   } | null>(null);
   const [dragOverride, setDragOverride] = useState<{ entityId: string; pos: Vec2 } | null>(null);
@@ -157,18 +161,34 @@ export function Editor() {
 
       const drag = dragRef.current;
       if (drag) {
-        const dx = e.clientX - drag.startClientX;
-        const dy = e.clientY - drag.startClientY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        drag.clientX = e.clientX;
+        drag.clientY = e.clientY;
         // しきい値未満は指に追従表示だけ行い、確定(moved)はしない
-        const isDrag = drag.moved || dist >= DRAG_START_PX;
-        const ramp = isDrag ? Math.max(drag.ramp, Math.min(1, (dist - DRAG_START_PX) / DRAG_RAMP_PX)) : 0;
-        const pointer = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX * ramp);
-        if (!pointer) return;
+        if (!drag.moved && Math.hypot(e.clientX - drag.startClientX, e.clientY - drag.startClientY) >= DRAG_START_PX) {
+          drag.moved = true;
+          drag.liftStart = performance.now();
+          rafId = requestAnimationFrame(liftTick);
+        }
+        renderDrag(drag);
+      }
+    };
+
+    let rafId = 0;
+    // 戻り値: 浮き上がり途中なら true
+    const renderDrag = (drag: NonNullable<typeof dragRef.current>): boolean => {
+      const lift = drag.liftStart === null ? 0 : smoothstep(Math.min(1, (performance.now() - drag.liftStart) / DRAG_LIFT_MS));
+      const pointer = pointerToCanonical(drag.clientX, drag.clientY - DRAG_OFFSET_PX * lift);
+      if (pointer) {
         const canonical = clampCanonical({ x: pointer.x + drag.grab.x, y: pointer.y + drag.grab.y });
-        if (isDrag) dragRef.current = { ...drag, moved: true, ramp, lastPos: canonical };
+        if (drag.moved) drag.lastPos = canonical;
         setDragOverride({ entityId: drag.entityId, pos: canonical });
       }
+      return lift < 1;
+    };
+    // 指が止まっていても浮き上がりを最後まで進める
+    const liftTick = () => {
+      const drag = dragRef.current;
+      if (drag?.moved && renderDrag(drag)) rafId = requestAnimationFrame(liftTick);
     };
 
     const handleUp = () => {
@@ -180,6 +200,7 @@ export function Editor() {
 
       const drag = dragRef.current;
       if (!drag) { setDragOverride(null); return; }
+      cancelAnimationFrame(rafId);
 
       // 表示していた位置にそのまま置く（離した瞬間の座標で再計算すると跳ねる）
       if (drag.moved) {
@@ -203,6 +224,7 @@ export function Editor() {
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('pointerup', handleUp);
     return () => {
+      cancelAnimationFrame(rafId);
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
     };
@@ -274,7 +296,7 @@ export function Editor() {
     const wasSelected = latestRef.current.selectedId === nearestId;
     if (!wasSelected) select(nearestId);
     dragRef.current = {
-      entityId: nearestId, moved: false, wasSelected, startClientX: clientX, startClientY: clientY, ramp: 0, lastPos: null,
+      entityId: nearestId, moved: false, wasSelected, startClientX: clientX, startClientY: clientY, clientX, clientY, liftStart: null, lastPos: null,
       grab: { x: nearestPos.x - canonical.x, y: nearestPos.y - canonical.y },
     };
   }, [commit, setAddMode, select]);

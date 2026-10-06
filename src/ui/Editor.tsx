@@ -85,7 +85,11 @@ export function Editor() {
 
   // ドラッグ状態（ローカルのみ）
   // wasSelected: 押下時点で既に選択中だったか（動かさず離したら選択解除する）
-  const dragRef = useRef<{ entityId: string; moved: boolean; wasSelected: boolean; startClientX: number; startClientY: number } | null>(null);
+  // ramp: 浮き上がり量の割合（単調増加）、lastPos: 最後に表示した位置＝着地点
+  const dragRef = useRef<{
+    entityId: string; moved: boolean; wasSelected: boolean;
+    startClientX: number; startClientY: number; ramp: number; lastPos: Vec2 | null;
+  } | null>(null);
   const [dragOverride, setDragOverride] = useState<{ entityId: string; pos: Vec2 } | null>(null);
 
   // スクロール状態（ローカルのみ）
@@ -156,16 +160,15 @@ export function Editor() {
         const dy = e.clientY - drag.startClientY;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (!drag.moved && dist < DRAG_START_PX) return;
-        const ramp = Math.min(1, dist / DRAG_RAMP_PX);
-        const offsetPx = DRAG_OFFSET_PX * ramp;
-        const canonical = pointerToCanonical(e.clientX, e.clientY - offsetPx);
+        const ramp = Math.max(drag.ramp, Math.min(1, dist / DRAG_RAMP_PX));
+        const canonical = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX * ramp);
         if (!canonical) return;
-        if (!drag.moved) dragRef.current = { ...drag, moved: true };
+        dragRef.current = { ...drag, moved: true, ramp, lastPos: canonical };
         setDragOverride({ entityId: drag.entityId, pos: canonical });
       }
     };
 
-    const handleUp = (e: PointerEvent) => {
+    const handleUp = () => {
       if (scrollRef.current) {
         commit(draft => { draft.viewY = latestRef.current.editorViewY; });
         scrollRef.current = null;
@@ -175,10 +178,10 @@ export function Editor() {
       const drag = dragRef.current;
       if (!drag) { setDragOverride(null); return; }
 
+      // 表示していた位置にそのまま置く（離した瞬間の座標で再計算すると跳ねる）
       if (drag.moved) {
-        const rawPos = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX);
-        if (rawPos) {
-          const canonical = clampCanonical(rawPos);
+        if (drag.lastPos) {
+          const canonical = clampCanonical(drag.lastPos);
           const { currentPhaseIdx: idx, play: currentPlay } = latestRef.current;
           const t = [0, ...currentPlay.markers][idx] ?? 0;
           commit(draft => {
@@ -265,7 +268,7 @@ export function Editor() {
 
     const wasSelected = latestRef.current.selectedId === nearestId;
     if (!wasSelected) select(nearestId);
-    dragRef.current = { entityId: nearestId, moved: false, wasSelected, startClientX: clientX, startClientY: clientY };
+    dragRef.current = { entityId: nearestId, moved: false, wasSelected, startClientX: clientX, startClientY: clientY, ramp: 0, lastPos: null };
   }, [commit, setAddMode, select]);
 
   const handleAddEntity = useCallback((side: 'attack' | 'defence') => {

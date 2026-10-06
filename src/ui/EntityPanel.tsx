@@ -1,4 +1,9 @@
 import type { Play, EntityShape } from '../core/types.ts';
+import { fitFontSize } from '../core/label.ts';
+
+const LABEL_BOX_W = 44;
+const LABEL_PAD_X = 4;
+const LABEL_BOX_H = 24;
 
 interface EntityPanelProps {
   play: Play;
@@ -94,9 +99,14 @@ export function EntityPanel({
                 border: 'none',
                 borderRadius: '4px 0 0 4px',
                 color: 'white',
-                padding: '4px 14px',
+                width: LABEL_BOX_W,
+                height: LABEL_BOX_H,
+                padding: `0 ${LABEL_PAD_X}px`,
                 cursor: 'pointer',
-                fontSize: 13,
+                fontSize: fitFontSize(selected.label, LABEL_BOX_W - LABEL_PAD_X * 2, 13, 8),
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                flexShrink: 0,
               }}
             >
               {selected.label}
@@ -109,7 +119,8 @@ export function EntityPanel({
                 borderLeft: '1px solid rgba(0,0,0,0.3)',
                 borderRadius: '0 4px 4px 0',
                 color: 'rgba(255,100,100,0.9)',
-                padding: '4px 6px',
+                height: LABEL_BOX_H,
+                padding: '0 6px',
                 cursor: 'pointer',
                 fontSize: 11,
                 lineHeight: 1,

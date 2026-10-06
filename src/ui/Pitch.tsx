@@ -4,6 +4,7 @@ import { FIELD } from '../core/field.ts';
 import { toScreen, VIEW_HEIGHT_M, SVG_WIDTH_M, fromScreen } from '../core/camera.ts';
 import { entityPositionAt } from '../core/interpolate.ts';
 import { ballStateAt } from '../core/ball.ts';
+import { fitFontSize } from '../core/label.ts';
 
 // ドラッグ中のエンティティに対し、currentTime のキーをドラッグ位置で仮置換したコピーを返す
 function withDragPos(entity: Entity, dragOverride: { entityId: string; pos: Vec2 } | null | undefined, t: number): Entity {
@@ -32,17 +33,8 @@ const SIDE_COLOR: Record<'attack' | 'defence', string> = {
 const TICK_XS = [3, 8, 32, 37] as const;
 const LINE_YS = [0, 10, 25, 30, 35, 50, 60] as const;
 
-function labelDisplayWidth(text: string): number {
-  let w = 0;
-  for (const cp of text) {
-    w += (cp.codePointAt(0) ?? 0) <= 0xff ? 0.5 : 1.0;
-  }
-  return w;
-}
-
 function tokenFontSize(label: string): number {
-  const W = labelDisplayWidth(label);
-  return Math.max(MIN_FONT, Math.min(MAX_FONT, (TOKEN_RADIUS * 1.6) / W));
+  return fitFontSize(label, TOKEN_RADIUS * 1.6, MAX_FONT, MIN_FONT);
 }
 
 const SQUARE_HALF = TOKEN_RADIUS * 0.9;

@@ -6,3 +6,4 @@ export * from './camera.ts';
 export * from './migration.ts';
 export * from './share.ts';
 
+export * from './label.ts';

@@ -15,3 +15,16 @@ html, body {
 #root {
   height: 100%;
 }
+
+/* ホーム画面アプリ(standalone)で角丸・ホームインジケータに UI が隠れないよう余白を確保 */
+.app-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  background: #1a1a1a;
+}

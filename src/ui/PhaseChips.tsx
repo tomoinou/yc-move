@@ -63,7 +63,7 @@ export function PhaseChips({
                   cursor: 'pointer',
                 }}
               >
-                {'F'}{i + 1}
+                {'f'}{i + 1}
               </button>
               {i > 0 && isActive && (
                 <button

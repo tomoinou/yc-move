@@ -82,7 +82,7 @@ export function Viewer({ play }: ViewerProps) {
   }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
+    <div className="app-frame">
       <div
         style={{ flex: '1 1 0', minHeight: 0, position: 'relative', touchAction: 'pinch-zoom' }}
         onPointerDown={handlePointerDown}

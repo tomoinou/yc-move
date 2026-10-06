@@ -394,7 +394,7 @@ export function Editor() {
   }, [shareUrl]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
+    <div className="app-frame">
       <div style={{ flex: '1 1 0', minHeight: 0, position: 'relative' }}>
         <Pitch
           play={play}

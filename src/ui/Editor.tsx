@@ -4,6 +4,7 @@ import { Controls } from './Controls.tsx';
 import { PhaseChips } from './PhaseChips.tsx';
 import { EntityPanel } from './EntityPanel.tsx';
 import { ScrollIndicator } from './ScrollIndicator.tsx';
+import { GuideOverlay } from './GuideOverlay.tsx';
 import { usePlayStore } from '../state/playStore.ts';
 import { useEditorStore } from '../state/editorStore.ts';
 import { usePlayback } from '../state/usePlayback.ts';
@@ -55,6 +56,7 @@ export function Editor() {
   const { currentTime, isPlaying, play: playback, pause, seek } = usePlayback(play.durationMs, lastPhaseTime);
 
   const svgRef = useRef<SVGSVGElement>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [viewH, setViewH] = useState(VIEW_HEIGHT_M);
   const initialCenteredRef = useRef(false);
 
@@ -484,7 +486,7 @@ export function Editor() {
         onPause={pause}
         onSeek={seek}
         onEditDuration={handleEditDuration}
-        showGuide
+        onOpenGuide={() => setGuideOpen(true)}
       />
       <EntityPanel
         play={play}
@@ -506,6 +508,7 @@ export function Editor() {
         onAssignBall={handleAssignBall}
         onShare={handleShare}
       />
+      {guideOpen && <GuideOverlay onClose={() => setGuideOpen(false)} />}
     </div>
   );
 }

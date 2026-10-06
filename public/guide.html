@@ -86,6 +86,7 @@
   .key.d { background: var(--blue); }
   .key.on { background: var(--olive); }
   .key.ball { background: #BB6600; }
+  .key .ico { width: 1em; height: 1em; vertical-align: -0.12em; }
   .table-wrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; background: var(--card); font-size: 0.95rem; }
   th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
@@ -111,7 +112,7 @@
 <main>
   <div class="note">
     <strong>はじめに大事なこと</strong>
-    編集中のプレイはこの端末に自動で保存され、次に開いたときに「前回の編集を再開しますか？」と聞かれます。ただし保存はこの端末のこのブラウザの中だけで、しばらく開かないと消えることもあります。完成したら必ず <span class="key">🔗</span> で共有URLを作り、LINE などに送って残してください。共有URLからはいつでも編集を再開できます（<a href="#share">7章</a>）。
+    編集中のプレイはこの端末に自動で保存され、次に開いたときに「前回の編集を再開しますか？」と聞かれます（「キャンセル」を選ぶと初期配置から新しく始まり、前回の編集は消えます）。ただし保存はこの端末のこのブラウザの中だけで、しばらく開かないと消えることもあります。完成したら必ず <span class="key">🔗</span> で共有URLを作り、LINE などに送って残してください。共有URLからはいつでも編集を再開できます（<a href="#share">7章</a>）。
   </div>
 
   <nav class="toc">
@@ -144,7 +145,7 @@
       <table>
         <tr><th>段</th><th>内容</th></tr>
         <tr><td>上段</td><td><span class="key on">f1</span> <span class="key">f2</span> … がフレーム（場面）です。右端の <span class="key">＋</span> でフレームを追加します。</td></tr>
-        <tr><td>中段</td><td><span class="key">▶</span> で再生、バーを動かすと好きな時点を表示できます。右の「0/<u>10</u>」は「現在の秒数 / 全体の秒数」で、下線の数字を押すと全体の秒数を変えられます。</td></tr>
+        <tr><td>中段</td><td><span class="key">▶</span> で再生、バーを動かすと好きな時点を表示できます。「0/<u>10</u>」は「現在の秒数 / 全体の秒数」で、下線の数字を押すと全体の秒数を変えられます。右端の <span class="key">?</span> でこの使い方マニュアルが開きます（右上の ✕ で閉じると元の画面に戻り、作業中のプレイはそのままです）。</td></tr>
         <tr><td>下段</td><td>左から順に下の表のボタンが並んでいます。</td></tr>
       </table>
     </div>
@@ -200,7 +201,8 @@
       <figcaption>f2 で A2〜A4 を前へ動かし、ボールを A2 に渡した例。薄い丸が前のフレームの位置、線が動いた跡</figcaption>
     </figure>
     <ul>
-      <li>動かしている間、プレイヤーは指より少し上に表示されます（指で隠れないため）。離したときに表示されていた場所に置かれます。</li>
+      <li>動かし始めると、プレイヤーは指で隠れないよう少し上に浮き上がります。離したときに表示されていた場所に置かれます。</li>
+      <li>プレイヤーをタップすると選ばれた状態（白い輪）になり、もう一度タップすると外れます。選ばれた状態のままでも、押さえて動かせます。</li>
       <li>フレームを点灯させると、前のフレームの位置が薄い丸で、そこまでの動きが線（攻撃は赤・守備は青）で表示されます。</li>
       <li>新しいフレームは「最後のフレームの1秒後」にできます。中段のバーをそれより先に動かしてから <span class="key">＋</span> を押すと、バーの時点にできます。</li>
       <li>フレームを選び直すときは、上段の <span class="key">f1</span> <span class="key">f2</span> … を押します。</li>
@@ -263,12 +265,12 @@
     <p>URLを開くと、再生専用の画面になります。</p>
     <figure class="phone">
       <img src="guide/07-viewer.png" alt="閲覧画面" width="390" height="844" loading="lazy">
-      <figcaption>閲覧画面。下に再生ボタンとバーだけが出ます</figcaption>
+      <figcaption>閲覧画面。下に再生ボタン・バーと、右端に鉛筆ボタンが出ます</figcaption>
     </figure>
     <ul>
       <li><span class="key">▶</span> で再生、バーで好きな時点を表示できます。</li>
       <li>ピッチを上下になぞるとスクロール、2本指で広げると拡大できます。</li>
-      <li>右下の鉛筆ボタンを押して確認で「OK」を選ぶと、このプレイを編集する画面に切り替わります（Safari では「戻る」で閲覧画面に戻れます）。直したものは、もう一度 <span class="key">🔗</span> で新しいURLを作って送ってください（前に送ったURLの内容は変わりません）。</li>
+      <li>右下の <span class="key"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 3.5l4 4L8 20H4v-4L16.5 3.5z"/><path d="M14 6l4 4"/></svg></span> を押して確認で「OK」を選ぶと、このプレイを編集する画面に切り替わります（Safari では「戻る」で閲覧画面に戻れます）。直したものは、もう一度 <span class="key">🔗</span> で新しいURLを作って送ってください（前に送ったURLの内容は変わりません）。</li>
     </ul>
   </section>
 
@@ -280,7 +282,7 @@
       <li>画面下（または上）の共有ボタン（四角から上向き矢印が出たマーク）を押します。</li>
       <li>メニューの「ホーム画面に追加」を選び、右上の「追加」を押します。</li>
     </ol>
-    <p>Safari とホーム画面アプリでは保存場所が別なので、Safari で編集していたプレイはホーム画面アプリでは再開できません（逆も同じ）。続きを別の場所で編集したいときは、共有URLを開いて鉛筆ボタンから再開してください。</p>
+    <p>Safari とホーム画面アプリでは保存場所が別なので、Safari で編集していたプレイはホーム画面アプリでは再開できません（逆も同じ）。続きを別の場所で編集したいときは、共有URLを開いて <span class="key"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 3.5l4 4L8 20H4v-4L16.5 3.5z"/><path d="M14 6l4 4"/></svg></span> から再開してください。</p>
   </section>
 </main>
 

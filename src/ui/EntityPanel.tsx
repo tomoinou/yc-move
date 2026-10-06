@@ -2,11 +2,9 @@ import type { CSSProperties } from 'react';
 import type { Play, EntityShape } from '../core/types.ts';
 import { fitFontSize } from '../core/label.ts';
 
-const BTN_H = 28;        // 最下部の全ボタン共通の高さ
-const LABEL_W = 40;
+import { BTN_H, LABEL_W, DEL_W, STD_W, GAP_IN_GROUP, GAP_BETWEEN_GROUPS, ROW_PAD_X, ROW_PAD_Y } from './layout.ts';
+
 const LABEL_PAD_X = 4;
-const GAP_IN_GROUP = 3;
-const GAP_BETWEEN_GROUPS = 10;
 
 interface EntityPanelProps {
   play: Play;
@@ -34,9 +32,8 @@ const btn = (active: boolean, color?: string): CSSProperties => ({
   color: active ? 'white' : 'rgba(255,255,255,0.3)',
   border: 'none',
   borderRadius: 4,
-  // 名前欄・消去以外のボタンは残り幅を等分して最大化
-  flex: '1 1 0',
-  minWidth: 0,
+  width: STD_W,
+  flexShrink: 0,
   height: BTN_H,
   padding: 0,
   fontSize: 14,
@@ -65,7 +62,7 @@ export function EntityPanel({
       display: 'flex',
       alignItems: 'center',
       gap: GAP_IN_GROUP,
-      padding: '3px 10px',
+      padding: `${ROW_PAD_Y}px ${ROW_PAD_X}px`,
       flexShrink: 0,
     }}>
       {/* G1: 上下スクロール */}
@@ -128,8 +125,9 @@ export function EntityPanel({
             borderLeft: '1px solid rgba(0,0,0,0.3)',
             borderRadius: '0 4px 4px 0',
             color: 'rgba(255,100,100,0.9)',
+            width: DEL_W,
             height: BTN_H,
-            padding: '0 6px',
+            padding: 0,
             cursor: 'pointer',
             fontSize: 11,
             lineHeight: 1,

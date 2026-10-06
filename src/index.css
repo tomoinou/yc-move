@@ -27,4 +27,5 @@ html, body {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   background: #1a1a1a;
+  container-type: inline-size;
 }

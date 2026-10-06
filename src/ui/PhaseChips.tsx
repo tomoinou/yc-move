@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { BTN_H, LABEL_W, DEL_W, STD_W, GAP_IN_GROUP, GAP_BETWEEN_GROUPS, ROW_PAD_X, ROW_PAD_Y } from './layout.ts';
 
 const AT_PHASE_TOLERANCE_MS = 50;
 
@@ -32,6 +33,8 @@ export function PhaseChips({
       background: '#111',
       display: 'flex',
       alignItems: 'center',
+      gap: GAP_BETWEEN_GROUPS,
+      padding: `${ROW_PAD_Y}px ${ROW_PAD_X}px`,
       flexShrink: 0,
     }}>
       {/* チップ群: 右から溢れず左にスクロール */}
@@ -42,13 +45,13 @@ export function PhaseChips({
           minWidth: 0,
           overflowX: 'auto',
           display: 'flex',
-          gap: 4,
-          padding: '3px 0 3px 8px',
+          gap: GAP_IN_GROUP,
           scrollbarWidth: 'none',
         }}
       >
         {phaseTimes.map((t, i) => {
           const isActive = isEditActive && !isPlaying && i === currentPhaseIdx && Math.abs(currentTime - t) <= AT_PHASE_TOLERANCE_MS;
+          const hasDelete = i > 0 && isActive;
           return (
             <div key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
               <button
@@ -57,15 +60,18 @@ export function PhaseChips({
                   background: isActive ? '#555500' : 'rgba(255,255,255,0.15)',
                   color: 'white',
                   border: 'none',
-                  borderRadius: (i === 0 || !isActive) ? 4 : '4px 0 0 4px',
-                  padding: isActive ? '4px 14px' : '4px 10px',
+                  borderRadius: hasDelete ? '4px 0 0 4px' : 4,
+                  width: isActive ? LABEL_W : STD_W,
+                  height: BTN_H,
+                  padding: 0,
                   fontSize: 13,
                   cursor: 'pointer',
+                  flexShrink: 0,
                 }}
               >
                 {'f'}{i + 1}
               </button>
-              {i > 0 && isActive && (
+              {hasDelete && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onDelete(i); }}
                   style={{
@@ -74,10 +80,13 @@ export function PhaseChips({
                     border: 'none',
                     borderLeft: '1px solid rgba(0,0,0,0.3)',
                     borderRadius: '0 4px 4px 0',
-                    padding: '4px 6px',
+                    width: DEL_W,
+                    height: BTN_H,
+                    padding: 0,
                     fontSize: 11,
                     cursor: 'pointer',
                     lineHeight: 1,
+                    flexShrink: 0,
                   }}
                 >
                   ×
@@ -88,19 +97,21 @@ export function PhaseChips({
         })}
       </div>
 
-      {/* + ボタン: 右端固定 */}
+      {/* + ボタン: 右端固定（共有ボタンと縦に揃う） */}
       <button
         onClick={onAdd}
         style={{
           flexShrink: 0,
+          boxSizing: 'border-box',
+          width: STD_W,
+          height: BTN_H,
+          padding: 0,
           background: 'rgba(255,255,255,0.08)',
           color: 'white',
           border: '1px dashed rgba(255,255,255,0.3)',
           borderRadius: 4,
-          padding: '4px 10px',
           fontSize: 13,
           cursor: 'pointer',
-          margin: '0 10px',
         }}
       >
         ＋

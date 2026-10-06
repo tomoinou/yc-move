@@ -1,6 +1,6 @@
 // 使い方:
 //   npm run set-default "<共有URL または #p= 以降の文字列>"
-//   npm run set-default 0   … ゴールデンマスター(scripts/golden-default.json)に戻す
+//   npm run set-default 0   … ゴールデンマスター(scripts/default-0.json)に戻す
 import { readFileSync, writeFileSync } from 'node:fs';
 import { decodePlay } from '../src/core/share.ts';
 import { migrateToLatest } from '../src/core/migration.ts';
@@ -13,7 +13,7 @@ if (!arg) {
 
 const isGolden = arg === '0';
 const play = isGolden
-  ? migrateToLatest(JSON.parse(readFileSync(new URL('./golden-default.json', import.meta.url), 'utf8')))
+  ? migrateToLatest(JSON.parse(readFileSync(new URL('./default-0.json', import.meta.url), 'utf8')))
   : await decodePlay(arg.includes('#p=') ? arg.slice(arg.indexOf('#p=') + 3) : arg);
 
 const out = {

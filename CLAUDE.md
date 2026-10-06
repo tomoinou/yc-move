@@ -193,7 +193,7 @@ export type Play = {
 - `npm test` — Vitest
 - `npm run lint` — ESLint + typecheck
 - `npm run set-default "<共有URL>"` — 初期配置 `public/default-play.json` を共有URLの内容で更新（作成者専用。push で反映）
-  - `npm run set-default 0` でゴールデンマスター `scripts/golden-default.json`（BK 6対6）に戻す
+  - `npm run set-default 0` でゴールデンマスター `scripts/default-0.json`（BK 6対6）に戻す
 
 ## コーディング規約
 

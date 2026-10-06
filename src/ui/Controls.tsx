@@ -1,9 +1,13 @@
 import type { CSSProperties } from 'react';
-import { BTN_H, STD_W } from './layout.ts';
+import { BTN_H, STD_W, GAP_BETWEEN_GROUPS } from './layout.ts';
 
-// 行の右端ボタン（下段の共有ボタンの真上に揃う）
+const ROW_GAP = 6;
+
+// 行の右端ボタン（下段の共有ボタンの真上に揃う）。左の隙間を下段のグループ間と同じにし、
+// 時間表示の右端を Redo の右端に揃える
 const sideBtn: CSSProperties = {
   flexShrink: 0,
+  marginLeft: GAP_BETWEEN_GROUPS - ROW_GAP,
   width: STD_W,
   height: BTN_H,
   padding: 0,
@@ -42,7 +46,7 @@ export function Controls({
       flexShrink: 0,
       display: 'flex',
       alignItems: 'center',
-      gap: 6,
+      gap: ROW_GAP,
     }}>
       <button
         onClick={isPlaying ? onPause : onPlay}

@@ -484,6 +484,7 @@ export function Editor() {
         onPause={pause}
         onSeek={seek}
         onEditDuration={handleEditDuration}
+        showGuide
       />
       <EntityPanel
         play={play}

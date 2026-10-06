@@ -1,3 +1,5 @@
+import { BTN_H, STD_W } from './layout.ts';
+
 interface ControlsProps {
   currentTime: number;
   durationMs: number;
@@ -6,10 +8,11 @@ interface ControlsProps {
   onPause: () => void;
   onSeek: (t: number) => void;
   onEditDuration?: () => void;
+  showGuide?: boolean;
 }
 
 export function Controls({
-  currentTime, durationMs, isPlaying, onPlay, onPause, onSeek, onEditDuration,
+  currentTime, durationMs, isPlaying, onPlay, onPause, onSeek, onEditDuration, showGuide = false,
 }: ControlsProps) {
   return (
     <div style={{
@@ -58,6 +61,32 @@ export function Controls({
       >
         {Math.round(currentTime / 1000)}/<u>{Math.round(durationMs / 1000)}</u>
       </div>
+      {showGuide && (
+        // 共有ボタンの真上に揃える。同じタブで開くと編集中のプレイが消えるため別タブで開く
+        <a
+          href={`${import.meta.env.BASE_URL}guide.html`}
+          target="_blank"
+          rel="noopener"
+          title="使い方ガイド"
+          style={{
+            flexShrink: 0,
+            boxSizing: 'border-box',
+            width: STD_W,
+            height: BTN_H,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(255,255,255,0.08)',
+            color: 'white',
+            borderRadius: 4,
+            fontSize: 14,
+            fontWeight: 'bold',
+            textDecoration: 'none',
+          }}
+        >
+          ?
+        </a>
+      )}
     </div>
   );
 }

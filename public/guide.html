@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>yc-move 使い方マニュアル</title>
+<style>
+  :root {
+    --bg: #f6f6f3;
+    --card: #ffffff;
+    --text: #1f2421;
+    --muted: #5d655f;
+    --line: #dfe3dc;
+    --pitch: #2e8b2e;
+    --olive: #555500;
+    --red: #E8272A;
+    --blue: #1755B8;
+    --note-bg: #fff7e0;
+    --note-line: #e8c96a;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  header {
+    background: var(--pitch);
+    color: #fff;
+    padding: 28px 20px 24px;
+  }
+  header h1 { margin: 0; font-size: 1.5rem; line-height: 1.3; }
+  header p { margin: 8px 0 0; opacity: 0.9; font-size: 0.95rem; }
+  main { max-width: 720px; margin: 0 auto; padding: 8px 16px 48px; }
+  nav.toc {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 18px;
+    margin: 20px 0 8px;
+  }
+  nav.toc h2 { font-size: 1rem; margin: 0 0 4px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; }
+  nav.toc a { color: var(--text); }
+  section { margin-top: 36px; }
+  h2 {
+    font-size: 1.25rem;
+    line-height: 1.4;
+    margin: 0 0 12px;
+    padding-left: 10px;
+    border-left: 5px solid var(--pitch);
+  }
+  h3 { font-size: 1.05rem; margin: 20px 0 6px; }
+  p { margin: 8px 0; }
+  ol.steps, ul { padding-left: 1.4em; margin: 8px 0; }
+  ol.steps li, ul li { margin: 4px 0; }
+  figure { margin: 14px 0; }
+  figure img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+  }
+  figure.phone img { width: 280px; }
+  figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 6px; }
+  .key {
+    display: inline-block;
+    min-width: 2em;
+    padding: 0 6px;
+    border-radius: 4px;
+    background: #3a3a3a;
+    color: #fff;
+    font-size: 0.85em;
+    line-height: 1.7;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: 0.05em;
+  }
+  .key.a { background: var(--red); }
+  .key.d { background: var(--blue); }
+  .key.on { background: var(--olive); }
+  .key.ball { background: #BB6600; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; background: var(--card); font-size: 0.95rem; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #eef1ec; white-space: nowrap; }
+  td:first-child { white-space: nowrap; }
+  .note {
+    background: var(--note-bg);
+    border: 1px solid var(--note-line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 14px 0;
+  }
+  .note strong { display: block; margin-bottom: 2px; }
+  footer { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 24px 16px 40px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>yc-move 使い方マニュアル</h1>
+  <p>コーチ向け：プレイの作り方と共有のしかた</p>
+</header>
+
+<main>
+  <div class="note">
+    <strong>はじめに大事なこと</strong>
+    作ったプレイはアプリの中に保存されません。ページを再読み込みしたり閉じたりすると消えてしまいます。完成したら必ず <span class="key">🔗</span> で共有URLを作り、LINE などに送って残してください。
+  </div>
+
+  <nav class="toc">
+    <h2>目次</h2>
+    <ol>
+      <li><a href="#screen">画面の見方</a></li>
+      <li><a href="#add">プレイヤーを追加する</a></li>
+      <li><a href="#frame">フレームで動きを付ける</a></li>
+      <li><a href="#ball">ボールを渡す</a></li>
+      <li><a href="#edit">名前の変更・削除、元に戻す</a></li>
+      <li><a href="#scroll">ピッチを上下にスクロールする</a></li>
+      <li><a href="#share">共有URLを送る</a></li>
+      <li><a href="#home">ホーム画面に追加する（iPhone）</a></li>
+    </ol>
+  </nav>
+
+  <section id="screen">
+    <h2>1. 画面の見方</h2>
+    <p>画面の上がピッチ、下が操作エリアです。攻撃（赤）は常に画面の下から上へ攻めます。</p>
+    <figure class="phone">
+      <img src="guide/01-editor.png" alt="エディタの初期画面" width="390" height="844" loading="lazy">
+      <figcaption>開いた直後の画面。赤が攻撃（A）、青が守備（D）</figcaption>
+    </figure>
+    <p>操作エリアは上から3段です。</p>
+    <figure>
+      <img src="guide/02-bottom.png" alt="操作エリア" width="390" height="116" loading="lazy">
+      <figcaption>上段：フレーム　中段：再生　下段：操作パネル</figcaption>
+    </figure>
+    <div class="table-wrap">
+      <table>
+        <tr><th>段</th><th>内容</th></tr>
+        <tr><td>上段</td><td><span class="key on">f1</span> <span class="key">f2</span> … がフレーム（場面）です。右端の <span class="key">＋</span> でフレームを追加します。</td></tr>
+        <tr><td>中段</td><td><span class="key">▶</span> で再生、バーを動かすと好きな時点を表示できます。右の「0/<u>10</u>」は「現在の秒数 / 全体の秒数」で、下線の数字を押すと全体の秒数を変えられます。</td></tr>
+        <tr><td>下段</td><td>左から順に下の表のボタンが並んでいます。</td></tr>
+      </table>
+    </div>
+    <h3>操作パネルのボタン</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>ボタン</th><th>はたらき</th></tr>
+        <tr><td><span class="key">▲▼</span></td><td>ピッチの上下スクロールモード（<a href="#scroll">6章</a>）</td></tr>
+        <tr><td><span class="key a">+A</span> <span class="key d">+D</span></td><td>攻撃・守備のプレイヤーを追加（<a href="#add">2章</a>）</td></tr>
+        <tr><td><span class="key">◯</span> / <span class="key">□</span></td><td>プレイヤーの形（丸・四角）の切替（<a href="#add">2章</a>）</td></tr>
+        <tr><td><span class="key ball">🏉</span> <span class="key on">A1 ×</span></td><td>プレイヤーを選んだときだけ出ます。ボールを持たせる・名前の変更・削除（<a href="#ball">4章</a>・<a href="#edit">5章</a>）</td></tr>
+        <tr><td><span class="key">←</span> <span class="key">→</span></td><td>元に戻す（Undo）・やり直す（Redo）</td></tr>
+        <tr><td><span class="key">🔗</span></td><td>共有URLをコピー（<a href="#share">7章</a>）</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section id="add">
+    <h2>2. プレイヤーを追加する</h2>
+    <ol class="steps">
+      <li><span class="key a">+A</span>（攻撃）か <span class="key d">+D</span>（守備）を押すと、ボタンが明るく点灯します。</li>
+      <li>ピッチ上の置きたい場所をタップすると、そこにプレイヤーが追加されます。</li>
+      <li>追加すると点灯は自動で消え、追加したプレイヤーが選ばれた状態になります。もう一人追加するときは、もう一度ボタンを押してください。</li>
+    </ol>
+    <figure>
+      <img src="guide/03-add-mode.png" alt="+A が点灯した状態" width="390" height="116" loading="lazy">
+      <figcaption><span class="key a">+A</span> が点灯している状態。この状態でピッチをタップすると追加</figcaption>
+    </figure>
+    <ul>
+      <li>名前は A7、D7 … と自動で付きます。あとから変更できます（<a href="#edit">5章</a>）。</li>
+      <li>追加をやめたいときは、点灯しているボタンをもう一度押します。</li>
+    </ul>
+    <h3>形（丸・四角）を選ぶ</h3>
+    <p><span class="key d">+D</span> の右のボタンで、プレイヤーの形を丸と四角から選べます。最初は丸です。FW と BK を分けるなど、2種類のプレイヤーを見分けたいときに使ってください。</p>
+    <ul>
+      <li>プレイヤーを選んでいないときに押すと、これから追加するプレイヤーの形が切り替わります。続けて追加すると同じ形になります。</li>
+      <li>プレイヤーを選んでいるときに押すと、そのプレイヤーの形が切り替わります。</li>
+    </ul>
+  </section>
+
+  <section id="frame">
+    <h2>3. フレームで動きを付ける</h2>
+    <p>プレイは「フレーム（場面）」の連続で作ります。f1 が最初の立ち位置、f2 が少し後の位置…というように各フレームでプレイヤーを置くと、再生したときにその間をなめらかに動きます。</p>
+    <ol class="steps">
+      <li>上段右端の <span class="key">＋</span> を押すと、新しいフレーム（f2 など）ができて点灯します。</li>
+      <li>動かしたいプレイヤーを指で押さえ、そのまま目的の場所までなぞって離します。</li>
+      <li>同じように、そのフレームで動く人をすべて動かします。</li>
+      <li>次の場面は、また <span class="key">＋</span> で追加して続けます。</li>
+      <li><span class="key">▶</span> で再生して動きを確認します。</li>
+    </ol>
+    <figure class="phone">
+      <img src="guide/05-frame2.png" alt="f2 でプレイヤーを動かした状態" width="390" height="844" loading="lazy">
+      <figcaption>f2 で A2〜A4 を前へ動かし、ボールを A2 に渡した例。薄い丸が前のフレームの位置、線が動いた跡</figcaption>
+    </figure>
+    <ul>
+      <li>動かしている間、プレイヤーは指より少し上に表示されます（指で隠れないため）。離したときに表示されていた場所に置かれます。</li>
+      <li>フレームを点灯させると、前のフレームの位置が薄い丸で、そこまでの動きが線（攻撃は赤・守備は青）で表示されます。</li>
+      <li>新しいフレームは「最後のフレームの1秒後」にできます。中段のバーをそれより先に動かしてから <span class="key">＋</span> を押すと、バーの時点にできます。</li>
+      <li>フレームを選び直すときは、上段の <span class="key">f1</span> <span class="key">f2</span> … を押します。</li>
+      <li>フレームを削除するには、点灯中のフレームの右に出る <span class="key on">×</span> を押します（f1 は削除できません）。</li>
+    </ul>
+    <div class="note">
+      <strong>プレイヤーが動かせないとき</strong>
+      プレイヤーを動かせるのは、上段のフレームが点灯（オリーブ色）しているときだけです。再生したり中段のバーを動かしたりすると点灯が消えるので、もう一度フレームを押して点灯させてください。また、選ばれている（白い輪が付いた）プレイヤーを押すと選択が外れるだけなので、もう一度押さえてから動かしてください。
+    </div>
+  </section>
+
+  <section id="ball">
+    <h2>4. ボールを渡す</h2>
+    <p>ボールは「各フレームで誰が持っているか」を決めると、フレームの間でパスされたように動きます。</p>
+    <ol class="steps">
+      <li>上段でボールを受け取るフレーム（例：f2）を点灯させます。</li>
+      <li>ボールを持たせたいプレイヤーをタップして選びます。</li>
+      <li>下段に出る <span class="key ball">🏉</span> を押します。点灯すれば、そのフレームからそのプレイヤーがボールを持ちます。</li>
+    </ol>
+    <figure>
+      <img src="guide/04-selected.png" alt="プレイヤーを選んだときの操作パネル" width="390" height="116" loading="lazy">
+      <figcaption>プレイヤーを選ぶと 🏉・名前・× が出ます。🏉 が点灯しているのは、このフレームでボールを持っている人</figcaption>
+    </figure>
+    <p>例：f1 で A1、f2 で A2 が持つようにすると、f1 から f2 の間にボールが A1 から A2 へ飛びます。</p>
+  </section>
+
+  <section id="edit">
+    <h2>5. 名前の変更・削除、元に戻す</h2>
+    <h3>名前を変える</h3>
+    <p>プレイヤーを選び、下段の名前（例：<span class="key on">A1</span>）を押すと入力欄が出ます。名前は1〜3文字です。全角（漢字・ひらがな）は2文字までが見やすくおすすめです。</p>
+    <h3>プレイヤーを削除する</h3>
+    <p>プレイヤーを選び、名前の右の <span class="key on">×</span> を押します。そのプレイヤーはすべてのフレームから消えます。</p>
+    <h3>元に戻す・やり直す</h3>
+    <p>操作を間違えたら <span class="key">←</span> で1つ前に戻せます。戻しすぎたら <span class="key">→</span> でやり直せます。</p>
+  </section>
+
+  <section id="scroll">
+    <h2>6. ピッチを上下にスクロールする</h2>
+    <p>画面に入りきらない部分を見たいときに使います。</p>
+    <ol class="steps">
+      <li><span class="key">▲▼</span> を押すと点灯し、スクロールモードになります。</li>
+      <li>ピッチを指で上下になぞると表示位置が動きます。</li>
+      <li>終わったら、もう一度 <span class="key on">▲▼</span> を押して戻ります。</li>
+    </ol>
+    <figure class="phone">
+      <img src="guide/06-scroll.png" alt="スクロールモード" width="390" height="844" loading="lazy">
+      <figcaption>スクロールモード中はプレイヤーが薄くなり、ピッチの枠が黄色になります</figcaption>
+    </figure>
+    <p>スクロールモード中はプレイヤーを動かせません。プレイヤーが動かないときは、このモードになっていないか確認してください。</p>
+  </section>
+
+  <section id="share">
+    <h2>7. 共有URLを送る</h2>
+    <ol class="steps">
+      <li>プレイが完成したら、右下の <span class="key">🔗</span> を押します。</li>
+      <li>「共有URLをコピーしました」と出たら、LINE などに貼り付けて選手に送ります。</li>
+      <li>URLが表示された入力欄が出た場合は、その中の文字を長押しで全部コピーして貼り付けてください（端末によってはこちらになります）。</li>
+    </ol>
+    <h3>受け取った人の画面</h3>
+    <p>URLを開くと、再生専用の画面になります。</p>
+    <figure class="phone">
+      <img src="guide/07-viewer.png" alt="閲覧画面" width="390" height="844" loading="lazy">
+      <figcaption>閲覧画面。下に再生ボタンとバーだけが出ます</figcaption>
+    </figure>
+    <ul>
+      <li><span class="key">▶</span> で再生、バーで好きな時点を表示できます。</li>
+      <li>ピッチを上下になぞるとスクロール、2本指で広げると拡大できます。</li>
+      <li>この画面ではプレイを変更できません。直したいときは、作り直して新しいURLを送ってください。</li>
+    </ul>
+  </section>
+
+  <section id="home">
+    <h2>8. ホーム画面に追加する（iPhone）</h2>
+    <p>ホーム画面にアイコンを置くと、アプリのように全画面で使えます。</p>
+    <ol class="steps">
+      <li>Safari で yc-move を開きます。</li>
+      <li>画面下（または上）の共有ボタン（四角から上向き矢印が出たマーク）を押します。</li>
+      <li>メニューの「ホーム画面に追加」を選び、右上の「追加」を押します。</li>
+    </ol>
+    <p>ホーム画面から開いた場合も、作ったプレイは保存されません。完成したら共有URLを送ってください。</p>
+  </section>
+</main>
+
+<footer>yc-move — U-12 ラグビースクール向け 戦術アニメーション</footer>
+</body>
+</html>

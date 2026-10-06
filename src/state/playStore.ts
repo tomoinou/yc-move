@@ -14,6 +14,7 @@ interface PlayStoreState {
   commit: (recipe: (draft: Play) => void) => void;
   undo: () => void;
   redo: () => void;
+  reset: (play: Play) => void;
 }
 
 export const usePlayStore = create<PlayStoreState>((set, get) => ({
@@ -57,5 +58,9 @@ export const usePlayStore = create<PlayStoreState>((set, get) => ({
       canUndo: true,
       canRedo: newFuture.length > 0,
     });
+  },
+
+  reset(play) {
+    set({ play, past: [], future: [], canUndo: false, canRedo: false });
   },
 }));

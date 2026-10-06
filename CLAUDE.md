@@ -192,6 +192,7 @@ export type Play = {
 - `npm run build` — 本番ビルド（Cloudflare 側は push で自動実行）
 - `npm test` — Vitest
 - `npm run lint` — ESLint + typecheck
+- `npm run set-default "<共有URL>"` — 初期配置 `public/default-play.json` を共有URLの内容で更新（作成者専用。push で反映）
 
 ## コーディング規約
 

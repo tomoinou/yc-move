@@ -21,8 +21,6 @@ interface EntityPanelProps {
   onShare: () => void;
 }
 
-const SIDE_COLOR = { attack: '#E8272A', defence: '#1755B8' } as const;
-
 const btn = (active: boolean, color?: string) => ({
   background: active ? (color ?? 'rgba(255,255,255,0.15)') : 'rgba(255,255,255,0.05)',
   color: active ? 'white' : 'rgba(255,255,255,0.3)',
@@ -41,7 +39,6 @@ export function EntityPanel({
 }: EntityPanelProps) {
   const selected = play.entities.find(e => e.id === selectedId);
   const ballActive = selected !== undefined && currentFrameHolderId === selected.id;
-  const shapeSide = addMode ?? selected?.side;
 
   return (
     <div style={{
@@ -52,24 +49,22 @@ export function EntityPanel({
       padding: '3px 10px',
       flexShrink: 0,
     }}>
+      <button style={btn(true, scrollMode ? '#555500' : undefined)} onClick={onToggleScroll}>▲▼</button>
       <button style={btn(true, addMode === 'attack' ? '#E8272A' : 'rgba(232,39,42,0.4)')} onClick={onAddAttack}>+A</button>
       <button style={btn(true, addMode === 'defence' ? '#1755B8' : 'rgba(23,85,184,0.4)')} onClick={onAddDefence}>+D</button>
-      <button style={btn(true, scrollMode ? '#555500' : undefined)} onClick={onToggleScroll}>▲▼</button>
+      <button
+        onClick={onToggleShape}
+        style={{ ...btn(true), padding: '4px 6px', display: 'flex', alignItems: 'center' }}
+        title="プレイヤーの形を切替"
+      >
+        <svg width="19" height="19" viewBox="-1 -1 2 2">
+          {shapeTarget === 'square'
+            ? <rect x={-0.72} y={-0.72} width={1.44} height={1.44} rx={0.12} fill="none" stroke="white" strokeWidth={0.14} />
+            : <circle r={0.78} fill="none" stroke="white" strokeWidth={0.14} />}
+        </svg>
+      </button>
 
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, fontSize: 13 }}>
-        {shapeSide && (
-          <button
-            onClick={onToggleShape}
-            style={{ ...btn(true), padding: '3px 6px', display: 'flex', alignItems: 'center' }}
-            title={addMode ? '追加するプレイヤーの形を切替' : 'プレイヤーの形を切替'}
-          >
-            <svg width="21" height="21" viewBox="-1 -1 2 2">
-              {shapeTarget === 'square'
-                ? <rect x={-0.72} y={-0.72} width={1.44} height={1.44} rx={0.12} fill={SIDE_COLOR[shapeSide]} stroke="white" strokeWidth={0.12} />
-                : <circle r={0.78} fill={SIDE_COLOR[shapeSide]} stroke="white" strokeWidth={0.12} />}
-            </svg>
-          </button>
-        )}
         {selected ? (
           <>
             <button

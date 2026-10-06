@@ -275,13 +275,11 @@ export function Editor() {
 
   const handleToggleShape = useCallback(() => {
     const next = (s: EntityShape | undefined) => (s === 'square' ? 'circle' : 'square');
-    if (addMode !== null) {
+    const entity = addMode === null ? play.entities.find(e => e.id === selectedId) : undefined;
+    if (!entity) {
       setAddShape(next(addShape));
       return;
     }
-    if (!selectedId) return;
-    const entity = play.entities.find(e => e.id === selectedId);
-    if (!entity) return;
     const shape = next(entity.shape);
     commit(draft => {
       const en = draft.entities.find(e => e.id === selectedId);
@@ -411,6 +409,10 @@ export function Editor() {
     }
   }, [shareUrl]);
 
+  // 追加モード外でプレイヤー選択中ならその形、それ以外は次に追加する形
+  const shapeEditEntity = addMode === null ? play.entities.find(e => e.id === selectedId) : undefined;
+  const shapeTarget = shapeEditEntity ? (shapeEditEntity.shape ?? 'circle') : addShape;
+
   return (
     <div className="app-frame">
       <div style={{ flex: '1 1 0', minHeight: 0, position: 'relative' }}>
@@ -455,7 +457,7 @@ export function Editor() {
         canRedo={canRedo}
         scrollMode={scrollMode}
         addMode={addMode}
-        shapeTarget={addMode !== null ? addShape : (play.entities.find(e => e.id === selectedId)?.shape ?? 'circle')}
+        shapeTarget={shapeTarget}
         onToggleShape={handleToggleShape}
         currentFrameHolderId={currentFrameHolderId}
         onAddAttack={() => handleAddEntity('attack')}

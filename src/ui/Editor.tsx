@@ -89,6 +89,7 @@ export function Editor() {
   const dragRef = useRef<{
     entityId: string; moved: boolean; wasSelected: boolean;
     startClientX: number; startClientY: number; ramp: number; lastPos: Vec2 | null;
+    grab: Vec2; // 押さえた点からプレイヤー中心へのずれ(m)。中心が指へ吸い寄せられるのを防ぐ
   } | null>(null);
   const [dragOverride, setDragOverride] = useState<{ entityId: string; pos: Vec2 } | null>(null);
 
@@ -135,7 +136,7 @@ export function Editor() {
       y: (clientY - rect.top) * scale,
     };
     const vh = rect.height * scale;
-    return clampCanonical(fromScreen(svgPt, latestRef.current.editorViewY, vh));
+    return fromScreen(svgPt, latestRef.current.editorViewY, vh);
   }
 
   // グローバル pointermove / pointerup
@@ -159,11 +160,13 @@ export function Editor() {
         const dx = e.clientX - drag.startClientX;
         const dy = e.clientY - drag.startClientY;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (!drag.moved && dist < DRAG_START_PX) return;
-        const ramp = Math.max(drag.ramp, Math.min(1, dist / DRAG_RAMP_PX));
-        const canonical = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX * ramp);
-        if (!canonical) return;
-        dragRef.current = { ...drag, moved: true, ramp, lastPos: canonical };
+        // しきい値未満は指に追従表示だけ行い、確定(moved)はしない
+        const isDrag = drag.moved || dist >= DRAG_START_PX;
+        const ramp = isDrag ? Math.max(drag.ramp, Math.min(1, (dist - DRAG_START_PX) / DRAG_RAMP_PX)) : 0;
+        const pointer = pointerToCanonical(e.clientX, e.clientY - DRAG_OFFSET_PX * ramp);
+        if (!pointer) return;
+        const canonical = clampCanonical({ x: pointer.x + drag.grab.x, y: pointer.y + drag.grab.y });
+        if (isDrag) dragRef.current = { ...drag, moved: true, ramp, lastPos: canonical };
         setDragOverride({ entityId: drag.entityId, pos: canonical });
       }
     };
@@ -253,6 +256,7 @@ export function Editor() {
     const hitRadiusM = rect && rect.width > 0 ? Math.max(5, 44 * SVG_WIDTH_M / rect.width) : 5;
     let nearestId: string | null = null;
     let nearestDist = Infinity;
+    let nearestPos: Vec2 = canonical;
     for (const entity of cp.entities) {
       const pos = entityPositionAt(entity, ct);
       const dx = canonical.x - pos.x;
@@ -261,6 +265,7 @@ export function Editor() {
       if (dist <= hitRadiusM && dist < nearestDist) {
         nearestId = entity.id;
         nearestDist = dist;
+        nearestPos = pos;
       }
     }
 
@@ -268,7 +273,10 @@ export function Editor() {
 
     const wasSelected = latestRef.current.selectedId === nearestId;
     if (!wasSelected) select(nearestId);
-    dragRef.current = { entityId: nearestId, moved: false, wasSelected, startClientX: clientX, startClientY: clientY, ramp: 0, lastPos: null };
+    dragRef.current = {
+      entityId: nearestId, moved: false, wasSelected, startClientX: clientX, startClientY: clientY, ramp: 0, lastPos: null,
+      grab: { x: nearestPos.x - canonical.x, y: nearestPos.y - canonical.y },
+    };
   }, [commit, setAddMode, select]);
 
   const handleAddEntity = useCallback((side: 'attack' | 'defence') => {

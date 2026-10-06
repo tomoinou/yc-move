@@ -12,7 +12,7 @@ import { VIEW_HEIGHT_M, SVG_WIDTH_M, fromScreen } from '../core/camera.ts';
 import { ballStateAt } from '../core/ball.ts';
 import { entityPositionAt } from '../core/interpolate.ts';
 import { encodePlay } from '../core/share.ts';
-import type { Vec2, Entity } from '../core/types.ts';
+import type { Vec2, Entity, EntityShape } from '../core/types.ts';
 
 const AT_PHASE_TOLERANCE_MS = 50;
 const DRAG_OFFSET_PX = 36;      // ドラッグ最大オフセット量(px)
@@ -44,8 +44,8 @@ function setTrackKey(entity: Entity, t: number, p: Vec2): void {
 export function Editor() {
   const { play, canUndo, canRedo, commit, undo, redo } = usePlayStore();
   const {
-    selectedId, currentPhaseIdx, isEditActive, scrollMode, addMode, viewY: editorViewY,
-    select, setPhaseIdx, setIsEditActive, setScrollMode, setAddMode, setViewY,
+    selectedId, currentPhaseIdx, isEditActive, scrollMode, addMode, addShape, viewY: editorViewY,
+    select, setPhaseIdx, setIsEditActive, setScrollMode, setAddMode, setAddShape, setViewY,
   } = useEditorStore();
   const lastPhaseTime = play.markers.length > 0 ? play.markers[play.markers.length - 1] + 100 : 0;
   const { currentTime, isPlaying, play: playback, pause, seek } = usePlayback(play.durationMs, lastPhaseTime);
@@ -95,9 +95,9 @@ export function Editor() {
   const isAtPhase = isEditActive && !isPlaying && Math.abs(currentTime - currentPhaseTime) <= AT_PHASE_TOLERANCE_MS;
 
   // 最新値を window リスナーから参照するための mutable ref
-  const latestRef = useRef({ play, currentPhaseIdx, selectedId, editorViewY, scrollMode, addMode, isAtPhase, currentTime });
+  const latestRef = useRef({ play, currentPhaseIdx, selectedId, editorViewY, scrollMode, addMode, addShape, isAtPhase, currentTime });
   useEffect(() => {
-    latestRef.current = { play, currentPhaseIdx, selectedId, editorViewY, scrollMode, addMode, isAtPhase, currentTime };
+    latestRef.current = { play, currentPhaseIdx, selectedId, editorViewY, scrollMode, addMode, addShape, isAtPhase, currentTime };
   });
 
   // undo/redo 後の viewY を反映
@@ -203,7 +203,7 @@ export function Editor() {
   }, [isAtPhase, selectedId, select]);
 
   const handleSvgPointerDown = useCallback((canonical: Vec2, clientX: number, clientY: number) => {
-    const { scrollMode: sm, addMode: am, isAtPhase: iap, play: cp, currentTime: ct } = latestRef.current;
+    const { scrollMode: sm, addMode: am, addShape: ash, isAtPhase: iap, play: cp, currentTime: ct } = latestRef.current;
 
     if (sm) {
       scrollRef.current = { startClientY: clientY, startViewY: latestRef.current.editorViewY };
@@ -224,6 +224,7 @@ export function Editor() {
           id,
           side: am,
           label,
+          shape: ash,
           track: [{ t: 0, p: canonical }],
         });
         if (isAttack && draft.entities.filter(e => e.side === 'attack').length === 1) {
@@ -271,6 +272,23 @@ export function Editor() {
       setScrollMode(false);
     }
   }, [addMode, setAddMode, setScrollMode]);
+
+  const handleToggleShape = useCallback(() => {
+    const next = (s: EntityShape | undefined) => (s === 'square' ? 'circle' : 'square');
+    if (addMode !== null) {
+      setAddShape(next(addShape));
+      return;
+    }
+    if (!selectedId) return;
+    const entity = play.entities.find(e => e.id === selectedId);
+    if (!entity) return;
+    const shape = next(entity.shape);
+    commit(draft => {
+      const en = draft.entities.find(e => e.id === selectedId);
+      if (en) en.shape = shape;
+    });
+    setAddShape(shape);
+  }, [addMode, addShape, selectedId, play.entities, commit, setAddShape]);
 
   const handleEditLabel = useCallback(() => {
     if (!selectedId) return;
@@ -437,6 +455,8 @@ export function Editor() {
         canRedo={canRedo}
         scrollMode={scrollMode}
         addMode={addMode}
+        shapeTarget={addMode !== null ? addShape : (play.entities.find(e => e.id === selectedId)?.shape ?? 'circle')}
+        onToggleShape={handleToggleShape}
         currentFrameHolderId={currentFrameHolderId}
         onAddAttack={() => handleAddEntity('attack')}
         onAddDefence={() => handleAddEntity('defence')}

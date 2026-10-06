@@ -11,8 +11,11 @@ export type Entity = {
   id: string;
   side: 'attack' | 'defence';
   label: string;
+  shape?: EntityShape; // 省略時は 'circle'
   track: TrackKey[];
 };
+
+export type EntityShape = 'circle' | 'square';
 
 export type BallHolder = {
   t: number;         // ms

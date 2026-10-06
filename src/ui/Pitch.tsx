@@ -1,4 +1,4 @@
-import type { Play, Vec2, Entity } from '../core/types.ts';
+import type { Play, Vec2, Entity, EntityShape } from '../core/types.ts';
 import type { RefObject } from 'react';
 import { FIELD } from '../core/field.ts';
 import { toScreen, VIEW_HEIGHT_M, SVG_WIDTH_M, fromScreen } from '../core/camera.ts';
@@ -43,6 +43,19 @@ function labelDisplayWidth(text: string): number {
 function tokenFontSize(label: string): number {
   const W = labelDisplayWidth(label);
   return Math.max(MIN_FONT, Math.min(MAX_FONT, (TOKEN_RADIUS * 1.6) / W));
+}
+
+const SQUARE_HALF = TOKEN_RADIUS * 0.9;
+
+function TokenShape({ shape, x, y, pad = 0, ...rest }: {
+  shape?: EntityShape; x: number; y: number; pad?: number;
+  fill?: string; stroke?: string; strokeWidth?: number; opacity?: number; pointerEvents?: string;
+}) {
+  if (shape === 'square') {
+    const h = SQUARE_HALF + pad;
+    return <rect x={x - h} y={y - h} width={h * 2} height={h * 2} rx={0.2} {...rest} />;
+  }
+  return <circle cx={x} cy={y} r={TOKEN_RADIUS + pad} {...rest} />;
 }
 
 function pointerToSvgCoords(clientX: number, clientY: number, rect: DOMRect): Vec2 {
@@ -227,10 +240,10 @@ export function Pitch({
         play.entities.map(entity => {
           const pos = ts(entityPositionAt(entity, t));
           return (
-            <circle
+            <TokenShape
               key={`onion-${entity.id}-${t}`}
-              cx={pos.x} cy={pos.y}
-              r={TOKEN_RADIUS}
+              shape={entity.shape}
+              x={pos.x} y={pos.y}
               fill={SIDE_COLOR[entity.side]}
               opacity={0.25}
               pointerEvents="none"
@@ -254,18 +267,19 @@ export function Pitch({
           <g key={entity.id} opacity={scrollMode ? 0.4 : 1}>
             {/* 選択リング */}
             {isSelected && (
-              <circle
-                cx={pos.x} cy={pos.y}
-                r={TOKEN_RADIUS + 0.35}
+              <TokenShape
+                shape={entity.shape}
+                x={pos.x} y={pos.y}
+                pad={0.35}
                 fill="none"
                 stroke="white"
                 strokeWidth={0.25}
                 pointerEvents="none"
               />
             )}
-            <circle
-              cx={pos.x} cy={pos.y}
-              r={TOKEN_RADIUS}
+            <TokenShape
+              shape={entity.shape}
+              x={pos.x} y={pos.y}
               fill={SIDE_COLOR[entity.side]}
               stroke="white"
               strokeWidth={0.1}

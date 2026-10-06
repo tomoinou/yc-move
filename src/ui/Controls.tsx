@@ -1,4 +1,23 @@
+import type { CSSProperties } from 'react';
 import { BTN_H, STD_W } from './layout.ts';
+
+// 行の右端ボタン（下段の共有ボタンの真上に揃う）
+const sideBtn: CSSProperties = {
+  flexShrink: 0,
+  width: STD_W,
+  height: BTN_H,
+  padding: 0,
+  border: 'none',
+  background: 'rgba(255,255,255,0.08)',
+  color: 'white',
+  borderRadius: 4,
+  fontSize: 14,
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
 
 interface ControlsProps {
   currentTime: number;
@@ -9,10 +28,11 @@ interface ControlsProps {
   onSeek: (t: number) => void;
   onEditDuration?: () => void;
   onOpenGuide?: () => void;
+  onEdit?: () => void;
 }
 
 export function Controls({
-  currentTime, durationMs, isPlaying, onPlay, onPause, onSeek, onEditDuration, onOpenGuide,
+  currentTime, durationMs, isPlaying, onPlay, onPause, onSeek, onEditDuration, onOpenGuide, onEdit,
 }: ControlsProps) {
   return (
     <div style={{
@@ -61,25 +81,17 @@ export function Controls({
       >
         {Math.round(currentTime / 1000)}/<u>{Math.round(durationMs / 1000)}</u>
       </div>
+      {onEdit && (
+        // 閲覧画面: 編集画面の ? と同じ位置
+        <button onClick={onEdit} title="このプレイを編集" style={sideBtn}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16.5 3.5l4 4L8 20H4v-4L16.5 3.5z" />
+            <path d="M14 6l4 4" />
+          </svg>
+        </button>
+      )}
       {onOpenGuide && (
-        // 共有ボタンの真上に揃える
-        <button
-          onClick={onOpenGuide}
-          title="使い方ガイド"
-          style={{
-            flexShrink: 0,
-            width: STD_W,
-            height: BTN_H,
-            padding: 0,
-            border: 'none',
-            background: 'rgba(255,255,255,0.08)',
-            color: 'white',
-            borderRadius: 4,
-            fontSize: 14,
-            fontWeight: 'bold',
-            cursor: 'pointer',
-          }}
-        >
+        <button onClick={onOpenGuide} title="使い方ガイド" style={sideBtn}>
           ?
         </button>
       )}

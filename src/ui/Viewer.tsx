@@ -12,9 +12,10 @@ function clamp(v: number, lo: number, hi: number) {
 
 interface ViewerProps {
   play: Play;
+  onEdit: () => void;
 }
 
-export function Viewer({ play }: ViewerProps) {
+export function Viewer({ play, onEdit }: ViewerProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewH, setViewH] = useState(VIEW_HEIGHT_M);
   const [viewY, setViewY] = useState(FIELD.halfM - VIEW_HEIGHT_M / 2);
@@ -107,6 +108,7 @@ export function Viewer({ play }: ViewerProps) {
         onPlay={playback}
         onPause={pause}
         onSeek={seek}
+        onEdit={onEdit}
       />
     </div>
   );

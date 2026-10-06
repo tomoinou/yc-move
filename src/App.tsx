@@ -42,12 +42,26 @@ export default function App() {
 
   useEffect(() => startDraftAutosave(), []);
 
-  // 閲覧中のプレイをそのまま編集する。再読み込みで閲覧に戻らないよう URL の #p= を外し、
-  // 古い下書きではなくこのプレイから再開できるよう下書きにも保存する
+  // ブラウザの戻る/進むで閲覧(#p=あり)と編集(#p=なし)を行き来する。編集内容はストアに残る
+  useEffect(() => {
+    const onPop = () => {
+      if (location.hash.startsWith('#p=')) {
+        decodePlay(location.hash.slice(3)).then(setState).catch(() => setState('error'));
+      } else {
+        setState('editor');
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  // 閲覧中のプレイをそのまま編集する。誤操作で閲覧に戻れなくならないよう確認を挟み、
+  // 戻るで閲覧に戻れるよう履歴を積む。古い下書きではなくこのプレイから再開できるよう下書きにも保存する
   const handleEdit = useCallback((play: Play) => {
+    if (!window.confirm('このプレイを編集しますか？')) return;
     usePlayStore.getState().reset(play);
     saveDraft(play);
-    history.replaceState(null, '', location.pathname + location.search);
+    history.pushState(null, '', location.pathname + location.search);
     setState('editor');
   }, []);
 
